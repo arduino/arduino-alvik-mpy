@@ -25,8 +25,8 @@ _BITS = 8
 _PARITY = 0
 _STOP = 1
 
-# led = Pin(48, Pin.OUT)
-# led_state = False
+readAddress = bytearray(STM32_ADDRESS)
+writeAddress = bytearray(STM32_ADDRESS)
 
 uart = UART(_UART_ID, baudrate=_BAUDRATE, bits=_BITS, parity=_PARITY, stop=_STOP, tx=_TX_PIN,
             rx=_RX_PIN)  # parity 0 equals to Even, 1 to Odd
@@ -132,20 +132,91 @@ def STM32_getVER() -> bytearray:
     return res
 
 
-def STM32_writeMode():
-    lock = True
-    while lock:
-        STM32_sendCommand(STM32_WRITE)
-        if STM32_waitOK() == 0:
-            lock = False
+def _STM32_readMode() -> bytes:
+    """
+    Enters read memory mode. Blocking
+    :return: returns ACK or NACK
+    """
+    STM32_sendCommand(STM32_READ)
+    return _STM32_waitForAnswer()
 
 
-def STM32_address(address):
-    check = 0x00
-    check = check ^ address[0]
-    check = check ^ address[1]
-    check = check ^ address[2]
-    check = check ^ address[3]
+def _STM32_writeMode() -> bytes:
+    """
+    Enters write memory mode. Blocking
+    :return: returns ACK or NACK
+    """
+    STM32_sendCommand(STM32_WRITE)
+    return _STM32_waitForAnswer()
 
+
+def _STM32_sendAddress(address: bytes) -> bytes:
+    """
+    Sends the start address of read/write operations. Blocking
+    :param address:
+    :return:
+    """
+    assert len(address) == 4
+
+    checksum = address[0] ^ address[1] ^ address[2] ^ address[3]
     uart.write(address)
-    uart.write(bytes([check]))
+    uart.write(bytes([checksum]))
+
+    return _STM32_waitForAnswer()
+
+
+def _incrementAddress(address: bytearray):
+    """
+    Incremets address by one page (256 bytes)
+    :param address:
+    :return:
+    """
+
+    address[2] = address[2] + 1
+    if address[2] == 0:
+        address[1] = address[1] + 1
+        if address[1] == 0:
+            address[0] = address[0] + 1
+
+
+def _STM32_readPage() -> bytearray:
+    """
+    Reads a 256 bytes data page from STM32. Returns a 256 bytearray. Blocking
+    :return: page bytearray
+    """
+
+    STM32_sendCommand(b'\xFF')
+    res = _STM32_waitForAnswer()
+    if res != STM32_ACK:
+        print("READ PAGE: Cannot read STM32")
+        return bytearray(0)
+    out = bytearray(0)
+    i = 0
+    while i < 256:
+        b = uart.read(1)
+        if b is None:
+            continue
+        out.append(b[0])
+        i = i+1
+    return out
+
+
+def _STM32_flashPage(data: bytearray) -> bytes:
+    """
+    Sends a 256 bytes data page to STM32. Blocking
+    :param data:
+    :return:
+    """
+
+    assert len(data) == 256
+
+    uart.write(b'\xff')     # page length
+    checksum = 0xff         # starting checksum = page length
+
+    for d in data:
+        uart.write(d)
+        checksum = checksum ^ d
+
+    uart.write(bytes([checksum]))
+
+    return _STM32_waitForAnswer()

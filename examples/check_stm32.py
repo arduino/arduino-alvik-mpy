@@ -1,3 +1,4 @@
+from sys import exit
 from stm32_flash import *
 
 ans = STM32_startCommunication()
