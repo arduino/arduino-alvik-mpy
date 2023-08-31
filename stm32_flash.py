@@ -1,5 +1,5 @@
 from time import sleep_ms
-from machine import Pin, UART
+from machine import UART
 
 STM32_INIT = b'\x7F'
 STM32_NACK = b'\x1F'
@@ -167,7 +167,7 @@ def _STM32_sendAddress(address: bytes) -> bytes:
 
 def _incrementAddress(address: bytearray):
     """
-    Incremets address by one page (256 bytes)
+    Increments address by one page (256 bytes)
     :param address:
     :return:
     """
@@ -220,3 +220,21 @@ def _STM32_flashPage(data: bytearray) -> bytes:
     uart.write(bytes([checksum]))
 
     return _STM32_waitForAnswer()
+
+
+def STM32_readMEM(pages: int):
+    """
+    Reads n 256-bytes pages from memory
+    :param pages: number of pages to read
+    :return:
+    """
+
+    for i in range(0, pages):
+        _STM32_readMode()
+        _STM32_sendAddress(readAddress)
+
+        page = _STM32_readPage()
+        print(f"Page {i+1} content:\n")
+        print(page.hex())
+
+        _incrementAddress(readAddress)
