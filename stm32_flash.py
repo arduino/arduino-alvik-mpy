@@ -102,6 +102,7 @@ def STM32_get() -> bytearray:
     res = STM32_readResponse()
     if res == -1:
         print("GET: STM32 responded with NACK")
+        return bytearray(0)
     return res[1:]
 
 
@@ -114,6 +115,7 @@ def STM32_getID() -> bytearray:
     res = STM32_readResponse()
     if res == -1:
         print("GET_ID: STM32 responded with NACK")
+        return bytearray(0)
     return res[1:]
 
 
@@ -126,6 +128,7 @@ def STM32_getVER() -> bytearray:
     res = STM32_readResponse()
     if res == -1:
         print("GET VER: STM32 responded with NACK")
+        return bytearray(0)
     return res
 
 
