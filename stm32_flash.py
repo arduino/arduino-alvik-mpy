@@ -12,7 +12,7 @@ STM32_GET_ID = b'\x02'
 STM32_READ = b'\x11'
 STM32_GO = b'\x21'
 STM32_WRITE = b'\x31'
-STM32_ERASE = b'\x43'
+STM32_ERASE = b'\x44'   # 0x44 is Extended Erase for bootloader v3.0 and higher. 0x43 is standard (1-byte address) erase
 
 STM32_ADDRESS = bytes.fromhex('08000000')  # [b'\x08',b'\x00',b'\x00',b'\x00']
 
@@ -150,6 +150,15 @@ def _STM32_writeMode() -> bytes:
     return _STM32_waitForAnswer()
 
 
+def _STM32_eraseMode() -> bytes:
+    """
+    Enters erase memory mode. Blocking
+    :return: returns ACK or NACK
+    """
+    STM32_sendCommand(STM32_ERASE)
+    return _STM32_waitForAnswer()
+
+
 def _STM32_sendAddress(address: bytes) -> bytes:
     """
     Sends the start address of read/write operations. Blocking
@@ -214,7 +223,7 @@ def _STM32_flashPage(data: bytearray) -> bytes:
     checksum = 0xff         # starting checksum = page length
 
     for d in data:
-        uart.write(d)
+        uart.write(bytes([d]))
         checksum = checksum ^ d
 
     uart.write(bytes([checksum]))
@@ -238,3 +247,74 @@ def STM32_readMEM(pages: int):
         print(page.hex())
 
         _incrementAddress(readAddress)
+
+
+def STM32_writeMEM(file_path: str):
+
+    with open(file_path, 'rb') as f:
+
+        while True:
+            data = bytearray(f.read(256))
+            read_bytes = len(data)
+            if read_bytes == 0:
+                break
+            data.extend(bytearray([255]*(256-read_bytes)))  # 0xFF padding
+
+            _STM32_writeMode()
+            _STM32_sendAddress(writeAddress)
+
+            _STM32_flashPage(data)
+            print("\nWrote\n")
+            print(data.hex())
+            print("\nin\n")
+            print(writeAddress.hex())
+            _incrementAddress(writeAddress)
+            sleep_ms(100)
+
+
+def _STM32_standardEraseMEM(pages: int, page_list: list = None):
+    """
+    Standard Erase (0x43) flash mem pages according to AN3155
+    :param pages: number of pages to be erased
+    :param page_list: page codes to be erased
+    :return:
+    """
+    pass
+
+
+def _STM32_extendedEraseMEM(pages: int, page_list: list = None):
+    """
+    Extended Erase (0x44) flash mem pages according to AN3155
+    :param pages: number of pages to be erased
+    :param page_list: page codes to be erased
+    :return:
+    """
+
+    if _STM32_eraseMode() == STM32_NACK:
+        print("COULD NOT ENTER ERASE MODE")
+        return
+
+    if pages == 0xFFFF:
+        # Mass erase
+        uart.write(b'\xFF')
+        uart.write(b'\xFF')
+        uart.write(b'\x00')
+    else:
+        print("Not yet implemented erase")
+
+    if _STM32_waitForAnswer() != STM32_ACK:
+        print("ERASE OPERATION ABORTED")
+
+
+def STM32_eraseMEM(pages: int, page_list: list = None):
+    """
+    Erases flash mem pages according to AN3155
+    :param pages: number of pages to be erased
+    :param page_list: page codes to be erased
+    :return:
+    """
+
+    if STM32_ERASE == b'\x43':
+        _STM32_standardEraseMEM(pages, page_list)
+    elif STM32_ERASE == b'\x44':
+        _STM32_extendedEraseMEM(pages, page_list)
