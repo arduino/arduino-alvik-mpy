@@ -1,5 +1,5 @@
 from time import sleep_ms
-from machine import UART
+from machine import UART, Pin
 
 STM32_INIT = b'\x7F'
 STM32_NACK = b'\x1F'
@@ -15,6 +15,12 @@ STM32_WRITE = b'\x31'
 STM32_ERASE = b'\x44'   # 0x44 is Extended Erase for bootloader v3.0 and higher. 0x43 is standard (1-byte address) erase
 
 STM32_ADDRESS = bytes.fromhex('08000000')  # [b'\x08',b'\x00',b'\x00',b'\x00']
+
+# NANO ESP32 SETTINGS
+_D2 = 5     # ESP32 pin5 -> nano D2
+_D3 = 6     # ESP32 pin6 -> nano D3
+_Boot0 = Pin(_D2, Pin.OUT)      # STM32 Boot0
+_NRST = Pin(_D3, Pin.OUT)       # STM32 NRST
 
 # UART SETTINGS
 _UART_ID = 1
@@ -37,8 +43,15 @@ def STM32_startCommunication() -> bytes:
     Starts communication with STM32 sending just 0x7F. Blocking
     :return:
     """
+    STM32_bootMode(bootloader=True)
+    STM32_reset()
     uart.write(STM32_INIT)
     return _STM32_waitForAnswer()
+
+
+def STM32_endCommunication():
+    STM32_bootMode(bootloader=False)
+    STM32_reset()
 
 
 def _STM32_waitForAnswer() -> bytes:
@@ -55,6 +68,21 @@ def _STM32_waitForAnswer() -> bytes:
             sleep_ms(10)
 
     return res
+
+
+def STM32_reset():
+    """
+    Resets STM32 from the host pins _D3
+    :return:
+    """
+    _NRST.value(0)
+    sleep_ms(100)
+    _NRST.value(1)
+    sleep_ms(500)
+
+
+def STM32_bootMode(bootloader: bool = False):
+    _Boot0.value(bootloader)
 
 
 def STM32_sendCommand(cmd: bytes):

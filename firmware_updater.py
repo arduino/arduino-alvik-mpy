@@ -15,3 +15,5 @@ print("\nWRITING MEM")
 STM32_writeMEM("Blink_fast.bin")
 print("\nDONE")
 print("\nLower Boot0 and reset STM32")
+
+STM32_endCommunication()
