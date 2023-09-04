@@ -50,6 +50,10 @@ def STM32_startCommunication() -> bytes:
 
 
 def STM32_endCommunication():
+    """
+    Ends communication with STM32 restoring flash boot mode and resetting
+    :return:
+    """
     STM32_bootMode(bootloader=False)
     STM32_reset()
 
@@ -82,6 +86,11 @@ def STM32_reset():
 
 
 def STM32_bootMode(bootloader: bool = False):
+    """
+    Sets boot mode for STM32
+    :param bootloader: if True, STM32 bootloader is run on boot
+    :return:
+    """
     _Boot0.value(bootloader)
 
 
