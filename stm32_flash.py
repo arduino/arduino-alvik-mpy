@@ -68,7 +68,7 @@ def STM32_sendCommand(cmd: bytes):
     uart.write(_cmd)
 
 
-def STM32_readResponse() -> [bytearray, int]:
+def STM32_readResponse() -> [bytearray, bytes]:
     """
     Blocking read to get the STM32 response to command, according to AN3155
     :return: returns a response bytearray dropping leading and trailing ACKs. returns -1 if NACK
@@ -81,7 +81,7 @@ def STM32_readResponse() -> [bytearray, int]:
         if b is None:
             continue
         if b == STM32_NACK:
-            return -1
+            return STM32_NACK
         elif b == STM32_ACK:
             if acks == 1:
                 break
@@ -113,7 +113,7 @@ def STM32_getID() -> bytearray:
     """
     STM32_sendCommand(STM32_GET_ID)
     res = STM32_readResponse()
-    if res == -1:
+    if res == STM32_NACK:
         print("GET_ID: STM32 responded with NACK")
         return bytearray(0)
     return res[1:]
@@ -126,7 +126,7 @@ def STM32_getVER() -> bytearray:
     """
     STM32_sendCommand(STM32_GET_VERSION)
     res = STM32_readResponse()
-    if res == -1:
+    if res == STM32_NACK:
         print("GET VER: STM32 responded with NACK")
         return bytearray(0)
     return res
@@ -239,8 +239,13 @@ def STM32_readMEM(pages: int):
     """
 
     for i in range(0, pages):
-        _STM32_readMode()
-        _STM32_sendAddress(readAddress)
+        if _STM32_readMode() != STM32_ACK:
+            print("COULD NOT ENTER READ MODE")
+            return
+
+        if _STM32_sendAddress(readAddress) != STM32_ACK:
+            print("STM32 ERROR ON ADDRESS SENT")
+            return
 
         page = _STM32_readPage()
         print(f"Page {i+1} content:\n")
@@ -252,7 +257,7 @@ def STM32_readMEM(pages: int):
 def STM32_writeMEM(file_path: str):
 
     with open(file_path, 'rb') as f:
-
+        print(f"Flashing {file_path}\n")
         while True:
             data = bytearray(f.read(256))
             read_bytes = len(data)
@@ -260,16 +265,20 @@ def STM32_writeMEM(file_path: str):
                 break
             data.extend(bytearray([255]*(256-read_bytes)))  # 0xFF padding
 
-            _STM32_writeMode()
-            _STM32_sendAddress(writeAddress)
+            if _STM32_writeMode() != STM32_ACK:
+                print("COULD NOT ENTER WRITE MODE")
+                return
 
-            _STM32_flashPage(data)
-            print("\nWrote\n")
-            print(data.hex())
-            print("\nin\n")
-            print(writeAddress.hex())
+            if _STM32_sendAddress(writeAddress) != STM32_ACK:
+                print("STM32 ERROR ON ADDRESS SENT")
+                return
+
+            if _STM32_flashPage(data) != STM32_ACK:
+                print(f"STM32 ERROR FLASHING PAGE: {writeAddress}")
+                return
+
+            print(".")
             _incrementAddress(writeAddress)
-            sleep_ms(100)
 
 
 def _STM32_standardEraseMEM(pages: int, page_list: bytearray = None):
