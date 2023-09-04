@@ -4,6 +4,17 @@
 
 The steps to follow in order to flash a new firmware (.bin) file on STM32 are the following:
 
+_Uploading the files_
+Please install mpremote to upload files on nano-ESP32 especially for binaries
+
+```shell
+(venv)$ pip install mpremote
+```
+to upload a file:
+``` shell
+(venv)$ mpremote connect "COM1" fs cp firmware.bin :firmware.bin
+```
+
 _Hardware_
 * Connect STM32 _Boot0_ pin to VDD 3V3 or connect _Boot0_ to _D2_ pin (nano)
 * Press _Reset_ button on Nucleo board or connect STM32 Reset pin to _D3_ (nano)
@@ -20,4 +31,4 @@ If _Boot0_ is wired to 3V3, disconnect it and press STM32 _Reset_ pin
 
 ### Tested on
 
-* STM32-F401RE
+* nano-ESP32 STM32-F401RE
