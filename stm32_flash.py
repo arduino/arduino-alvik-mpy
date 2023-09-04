@@ -272,17 +272,30 @@ def STM32_writeMEM(file_path: str):
             sleep_ms(100)
 
 
-def _STM32_standardEraseMEM(pages: int, page_list: list = None):
+def _STM32_standardEraseMEM(pages: int, page_list: bytearray = None):
     """
     Standard Erase (0x43) flash mem pages according to AN3155
     :param pages: number of pages to be erased
     :param page_list: page codes to be erased
     :return:
     """
-    pass
+
+    if _STM32_eraseMode() == STM32_NACK:
+        print("COULD NOT ENTER ERASE MODE")
+        return
+
+    if pages == 0xFF:
+        # Mass erase
+        uart.write(b'\xFF')
+        uart.write(b'\x00')
+    else:
+        print("Not yet implemented erase")
+
+    if _STM32_waitForAnswer() != STM32_ACK:
+        print("ERASE OPERATION ABORTED")
 
 
-def _STM32_extendedEraseMEM(pages: int, page_list: list = None):
+def _STM32_extendedEraseMEM(pages: int, page_list: bytearray = None):
     """
     Extended Erase (0x44) flash mem pages according to AN3155
     :param pages: number of pages to be erased
@@ -299,6 +312,16 @@ def _STM32_extendedEraseMEM(pages: int, page_list: list = None):
         uart.write(b'\xFF')
         uart.write(b'\xFF')
         uart.write(b'\x00')
+    elif pages == 0xFFFE:
+        # Bank1 erase
+        uart.write(b'\xFF')
+        uart.write(b'\xFE')
+        uart.write(b'\x01')
+    elif pages == 0xFFFD:
+        # Bank2 erase
+        uart.write(b'\xFF')
+        uart.write(b'\xFD')
+        uart.write(b'\x02')
     else:
         print("Not yet implemented erase")
 
@@ -306,7 +329,7 @@ def _STM32_extendedEraseMEM(pages: int, page_list: list = None):
         print("ERASE OPERATION ABORTED")
 
 
-def STM32_eraseMEM(pages: int, page_list: list = None):
+def STM32_eraseMEM(pages: int, page_list: bytearray = None):
     """
     Erases flash mem pages according to AN3155
     :param pages: number of pages to be erased
