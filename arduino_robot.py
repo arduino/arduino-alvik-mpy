@@ -8,6 +8,8 @@ class ArduinoRobot:
 
     def __init__(self):
         self.packeter = ucPack(200)
+        self._update_thread_running = False
+        self._update_thread_id = None
         self.l_speed = None
         self.r_speed = None
         self.battery_perc = None
@@ -22,15 +24,46 @@ class ArduinoRobot:
         self.roll = None
         self.pitch = None
         self.yaw = None
+        self.left_tof = None
+        self.center_left_tof = None
+        self.center_tof = None
+        self.center_right_tof = None
+        self.right_tof = None
+        self.top_tof = None
+        self.bottom_tof = None
 
     def run(self):
-        _thread.start_new_thread(self.update, (1, 1))
+        """
+        Runs robot background operations (e.g. threaded update)
+        :return:
+        """
+        self._update_thread_running = True
+        self._update_thread_id = _thread.start_new_thread(self._update, (1,))
+
+    def stop(self):
+        """
+        Stops the background operations
+        :return:
+        """
+        self._update_thread_running = False
 
     def set_speed(self, left_speed, right_speed):
+        """
+        Sets left/right motor speed
+        :param left_speed:
+        :param right_speed:
+        :return:
+        """
         self.packeter.packetC2F(ord('J'), left_speed, right_speed)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
 
     def set_servo_angle(self, left_angle, right_angle):
+        """
+        Sets left/right motor angle
+        :param left_angle:
+        :param right_angle:
+        :return:
+        """
         self.packeter.packetC2B(ord('S'), left_angle, right_angle)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
 
@@ -39,16 +72,35 @@ class ArduinoRobot:
     #     uart.write(self.packeter.msg[0:self.packeter.msg_size])
 
     def set_leds(self, led_state):
+        """
+        Sets the LEDs state
+        :param led_state:
+        :return:
+        """
         self.packeter.packetC1B(ord('L'), led_state)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
 
-    def update(self, delay_, id_):
+    def _update(self, delay_=1):
+        """
+        Updates the robot status reading/parsing messages from UART.
+        This method is blocking and meant as a thread callback
+        Use the method stop to terminate _update and exit the thread
+        :param delay_: while loop delay
+        :param id_:
+        :return:
+        """
         while True:
-            if self.read_message():
-                self.parse_message()
+            if not self._update_thread_running:
+                break
+            if self._read_message():
+                self._parse_message()
             sleep_ms(delay_)
 
-    def read_message(self) -> bool:
+    def _read_message(self) -> bool:
+        """
+        Read a message from the uC
+        :return: True if a message terminator was reached
+        """
         while uart.any():
             b = uart.read(1)[0]
             self.packeter.buffer.push(b)
@@ -57,7 +109,11 @@ class ArduinoRobot:
                 return True
         return False
 
-    def parse_message(self) -> int:
+    def _parse_message(self) -> int:
+        """
+        Parse a received message
+        :return: -1 if parse error 0 if ok
+        """
         code = self.packeter.payload[0]
         if code == ord('j'):
             # joint speed
@@ -76,7 +132,7 @@ class ArduinoRobot:
             _, self.battery_perc = self.packeter.unpacketC1F()
         elif code == ord('d'):
             # distance sensor
-            _, left_tof, center_tof, right_tof = self.packeter.unpacketC3I()
+            _, self.left_tof, self.center_tof, self.right_tof = self.packeter.unpacketC3I()
         elif code == ord('t'):
             # touch input
             _, self.touch_bits = self.packeter.unpacketC1B()
@@ -85,8 +141,8 @@ class ArduinoRobot:
             _, self.behaviour = self.packeter.unpacketC1B()
         elif code == ord('f'):
             # tof matrix
-            # _, left, center_left, center,	center_right, right, bottom, top = self.packeter.unpacketC7I()
-            pass
+            (_, self.left_tof, self.center_left_tof, self.center_tof,
+             self.center_right_tof, self.right_tof, self.bottom_tof, self.top_tof) = self.packeter.unpacketC7I()
         elif code == 'q':
             # imu position
             _, self.roll, self.pitch, self.yaw = self.packeter.unpacketC3F()
