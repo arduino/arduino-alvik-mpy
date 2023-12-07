@@ -8,17 +8,20 @@ class ArduinoRobot:
 
     def __init__(self):
         self.packeter = ucPack(200)
-        self.l_speed = 0
-        self.r_speed = 0
-        self.battery_perc = 0.0
-        self.touch_bits = 0
-        self.behaviour = 0
-        self.red = 0
-        self.green = 0
-        self.blue = 0
-        self.left_line = 0
-        self.center_line = 0
-        self.right_line = 0
+        self.l_speed = None
+        self.r_speed = None
+        self.battery_perc = None
+        self.touch_bits = None
+        self.behaviour = None
+        self.red = None
+        self.green = None
+        self.blue = None
+        self.left_line = None
+        self.center_line = None
+        self.right_line = None
+        self.roll = None
+        self.pitch = None
+        self.yaw = None
 
     def run(self):
         _thread.start_new_thread(self.update, (1, 1))
@@ -84,6 +87,9 @@ class ArduinoRobot:
             # tof matrix
             # _, left, center_left, center,	center_right, right, bottom, top = self.packeter.unpacketC7I()
             pass
+        elif code == 'q':
+            # imu position
+            _, self.roll, self.pitch, self.yaw = self.packeter.unpacketC3F()
         else:
             return -1
 
