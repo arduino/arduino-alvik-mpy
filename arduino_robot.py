@@ -31,6 +31,7 @@ class ArduinoRobot:
         self.right_tof = None
         self.top_tof = None
         self.bottom_tof = None
+        self.version = [None, None, None]
 
     def run(self):
         """
@@ -143,13 +144,25 @@ class ArduinoRobot:
             # tof matrix
             (_, self.left_tof, self.center_left_tof, self.center_tof,
              self.center_right_tof, self.right_tof, self.bottom_tof, self.top_tof) = self.packeter.unpacketC7I()
-        elif code == 'q':
+        elif code == ord('q'):
             # imu position
             _, self.roll, self.pitch, self.yaw = self.packeter.unpacketC3F()
+        elif code == 0x7E:
+            # firmware version
+            _, *self.version = self.packeter.unpacketC3B()
         else:
             return -1
 
         return 0
+
+    def get_version(self):
+        return f'{self.version[0]}.{self.version[1]}.{self.version[2]}'
+
+    def print_status(self):
+        for a in vars(self):
+            if str(a).startswith('_'):
+                continue
+            print(f'{str(a).upper()} = {getattr(self, str(a))}')
 
     def get_speed(self):
         pass
