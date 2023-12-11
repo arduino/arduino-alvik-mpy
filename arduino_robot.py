@@ -1,3 +1,4 @@
+import stm32_flash
 from uart import uart
 import _thread
 from time import sleep_ms
@@ -32,6 +33,21 @@ class ArduinoRobot:
         self.top_tof = None
         self.bottom_tof = None
         self.version = [None, None, None]
+
+    def boot_mode(self, bootloader: bool = False):
+        """
+        Sets boot mode for STM32
+        :param bootloader: if True, STM32 bootloader is run on boot
+        :return:
+        """
+        stm32_flash.STM32_bootMode(bootloader)
+
+    def reset(self):
+        """
+        Resets STM32 from the host pins
+        :return:
+        """
+        stm32_flash.STM32_reset()
 
     def run(self):
         """

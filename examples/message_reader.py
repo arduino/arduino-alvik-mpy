@@ -5,10 +5,13 @@ import sys
 robot = ArduinoRobot()
 
 robot.run()
+sleep_ms(100)
+robot.reset()
 speed = 0
 
 while True:
     try:
+        print(f'VER: {robot.version}')
         print(f'LSP: {robot.l_speed}')
         print(f'RSP: {robot.r_speed}')
         print(f'TOUCH: {robot.touch_bits}')
