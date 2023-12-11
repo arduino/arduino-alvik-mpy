@@ -34,6 +34,24 @@ class ArduinoRobot:
         self.bottom_tof = None
         self.version = [None, None, None]
 
+    def flash_firmware(self, file_path: str):
+        ans = stm32_flash.STM32_startCommunication()
+        if ans == stm32_flash.STM32_NACK:
+            print("Cannot etablish connection with STM32")
+            exit(-1)
+
+        print('\nSTM32 FOUND')
+
+        print('\nERASING MEM')
+        stm32_flash.STM32_eraseMEM(0xFFFF)
+
+        print("\nWRITING MEM")
+        stm32_flash.STM32_writeMEM(file_path)
+        print("\nDONE")
+        print("\nLower Boot0 and reset STM32")
+
+        stm32_flash.STM32_endCommunication()
+
     def boot_mode(self, bootloader: bool = False):
         """
         Sets boot mode for STM32
