@@ -66,7 +66,6 @@ def _STM32_waitForAnswer() -> bytes:
 
     while True:
         res = uart.read(1)
-        print(f'waiting for answer: {res}')
         if res == STM32_ACK or res == STM32_NACK:
             break
         else:
