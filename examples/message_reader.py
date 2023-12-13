@@ -6,7 +6,7 @@ robot = ArduinoRobot()
 
 robot.run()
 sleep_ms(100)
-robot.reset()
+robot.reset_hw()
 speed = 0
 
 while True:
@@ -18,10 +18,11 @@ while True:
         print(f'RGB: {robot.red} {robot.green} {robot.blue}')
         print(f'LINE: {robot.left_line} {robot.center_line} {robot.right_line}')
 
-        robot.set_speed(speed, speed)
+        robot.set_speeds(speed, speed)
         speed = (speed + 1) % 60
         sleep_ms(1000)
     except KeyboardInterrupt as e:
         print('over')
-        robot.set_speed(0, 0)
-        sys.exit()
+        robot.set_speeds(0, 0)
+        break
+sys.exit()

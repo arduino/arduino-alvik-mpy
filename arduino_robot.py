@@ -1,6 +1,7 @@
 from uart import uart
 import _thread
 from time import sleep_ms
+from pinout_definitions import *
 from ucPack import ucPack
 
 
@@ -48,6 +49,18 @@ class ArduinoRobot:
         :return:
         """
         self._update_thread_running = False
+
+    @staticmethod
+    def reset_hw():
+        """
+        Resets the STM32
+        :return:
+        """
+
+        RESET_STM32.value(0)
+        sleep_ms(100)
+        RESET_STM32.value(1)
+        sleep_ms(100)
 
     def get_speeds(self) -> (int, int):
         return self.l_speed, self.r_speed
