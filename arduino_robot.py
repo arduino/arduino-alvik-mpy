@@ -210,6 +210,33 @@ class ArduinoRobot:
 
         return 0
 
+    def _get_touch(self) -> int:
+        return self.touch_bits
+
+    def get_touch_any(self) -> bool:
+        return bool(self.touch_bits & 0b00000001)
+
+    def get_touch_ok(self) -> bool:
+        return bool(self.touch_bits & 0b00000010)
+
+    def get_touch_cancel(self) -> bool:
+        return bool(self.touch_bits & 0b00000100)
+
+    def get_touch_center(self) -> bool:
+        return bool(self.touch_bits & 0b00001000)
+
+    def get_touch_up(self) -> bool:
+        return bool(self.touch_bits & 0b00010000)
+
+    def get_touch_left(self) -> bool:
+        return bool(self.touch_bits & 0b00100000)
+
+    def get_touch_down(self) -> bool:
+        return bool(self.touch_bits & 0b01000000)
+
+    def get_touch_right(self) -> bool:
+        return bool(self.touch_bits & 0b10000000)
+
     def get_version(self) -> str:
         return f'{self.version[0]}.{self.version[1]}.{self.version[2]}'
 
