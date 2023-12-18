@@ -237,6 +237,9 @@ class ArduinoRobot:
     def get_touch_right(self) -> bool:
         return bool(self.touch_bits & 0b10000000)
 
+    def get_color(self) -> (int, int, int):
+        return self.red, self.green, self.blue
+
     def get_version(self) -> str:
         return f'{self.version[0]}.{self.version[1]}.{self.version[2]}'
 
