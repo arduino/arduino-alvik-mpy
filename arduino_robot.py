@@ -62,7 +62,7 @@ class ArduinoRobot:
         RESET_STM32.value(1)
         sleep_ms(100)
 
-    def get_speeds(self) -> (int, int):
+    def get_speeds(self) -> (float, float):
         return self.l_speed, self.r_speed
 
     def set_speeds(self, left_speed: float, right_speed: float):
@@ -105,7 +105,7 @@ class ArduinoRobot:
     #     self.packeter.packetC1B(ord('X'), ACK_)
     #     uart.write(self.packeter.msg[0:self.packeter.msg_size])
 
-    def set_leds(self, led_state: int):
+    def _set_leds(self, led_state: int):
         """
         Sets the LEDs state
         :param led_state: one byte 0->builtin 1->illuminator 2->left_red 3->left_green 4->left_blue
@@ -118,23 +118,23 @@ class ArduinoRobot:
 
     def set_builtin_led(self, value: bool):
         self.led_state = self.led_state | 0b00000001 if value else self.led_state & 0b11111110
-        self.set_leds(self.led_state)
+        self._set_leds(self.led_state)
 
     def set_illuminator(self, value: bool):
         self.led_state = self.led_state | 0b00000010 if value else self.led_state & 0b11111101
-        self.set_leds(self.led_state)
+        self._set_leds(self.led_state)
 
     def set_left_led_color(self, red: bool, green: bool, blue: bool):
         self.led_state = self.led_state | 0b00000100 if red else self.led_state & 0b11111011
         self.led_state = self.led_state | 0b00001000 if green else self.led_state & 0b11110111
         self.led_state = self.led_state | 0b00010000 if blue else self.led_state & 0b11101111
-        self.set_leds(self.led_state)
+        self._set_leds(self.led_state)
 
     def set_right_led_color(self, red: bool, green: bool, blue: bool):
         self.led_state = self.led_state | 0b00100000 if red else self.led_state & 0b11011111
         self.led_state = self.led_state | 0b01000000 if green else self.led_state & 0b10111111
         self.led_state = self.led_state | 0b10000000 if blue else self.led_state & 0b01111111
-        self.set_leds(self.led_state)
+        self._set_leds(self.led_state)
 
     def _update(self, delay_=1):
         """
@@ -210,7 +210,7 @@ class ArduinoRobot:
 
         return 0
 
-    def get_version(self):
+    def get_version(self) -> str:
         return f'{self.version[0]}.{self.version[1]}.{self.version[2]}'
 
     def print_status(self):
