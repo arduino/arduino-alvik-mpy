@@ -78,6 +78,19 @@ class ArduinoRobot:
         self.packeter.packetC2F(ord('J'), left_speed, right_speed)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
 
+    def set_pid(self, side: str, kp: float, ki: float, kd: float):
+        """
+        Sets motor PID parameters. Side can be 'L' or 'R'
+        :param side:
+        :param kp:
+        :param ki:
+        :param kd:
+        :return:
+        """
+
+        self.packeter.packetC1B3F(ord('P'), ord(side), kp, ki, kd)
+        uart.write(self.packeter.msg[0:self.packeter.msg_size])
+
     def get_orientation(self) -> (float, float, float):
         """
         Returns the orientation of the IMU
@@ -242,12 +255,14 @@ class ArduinoRobot:
 
     def get_color(self) -> (int, int, int):
         """
-        Returns the RGB 3 bytes color
+        Returns the RGB color readout
         :return:
         """
-        return (int((self.red/COLOR_FULL_SCALE)*255),
-                int((self.green/COLOR_FULL_SCALE)*255),
-                int((self.blue/COLOR_FULL_SCALE)*255))
+
+        return self.red, self.green, self.blue
+        # return (int((self.red/COLOR_FULL_SCALE)*255),
+        #         int((self.green/COLOR_FULL_SCALE)*255),
+        #         int((self.blue/COLOR_FULL_SCALE)*255))
 
     def get_distance(self) -> (int, int, int, int, int, int):
         return self.left_tof, self.center_left_tof, self.center_tof, self.center_right_tof, self.right_tof
