@@ -133,20 +133,28 @@ class ArduinoRobot:
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
 
     def set_builtin_led(self, value: bool):
+        if self.led_state is None:
+            self._set_leds(0x00)
         self.led_state = self.led_state | 0b00000001 if value else self.led_state & 0b11111110
         self._set_leds(self.led_state)
 
     def set_illuminator(self, value: bool):
+        if self.led_state is None:
+            self._set_leds(0x00)
         self.led_state = self.led_state | 0b00000010 if value else self.led_state & 0b11111101
         self._set_leds(self.led_state)
 
     def set_left_led_color(self, red: bool, green: bool, blue: bool):
+        if self.led_state is None:
+            self._set_leds(0x00)
         self.led_state = self.led_state | 0b00000100 if red else self.led_state & 0b11111011
         self.led_state = self.led_state | 0b00001000 if green else self.led_state & 0b11110111
         self.led_state = self.led_state | 0b00010000 if blue else self.led_state & 0b11101111
         self._set_leds(self.led_state)
 
     def set_right_led_color(self, red: bool, green: bool, blue: bool):
+        if self.led_state is None:
+            self._set_leds(0x00)
         self.led_state = self.led_state | 0b00100000 if red else self.led_state & 0b11011111
         self.led_state = self.led_state | 0b01000000 if green else self.led_state & 0b10111111
         self.led_state = self.led_state | 0b10000000 if blue else self.led_state & 0b01111111
