@@ -249,6 +249,9 @@ class ArduinoRobot:
                 int((self.green/COLOR_FULL_SCALE)*255),
                 int((self.blue/COLOR_FULL_SCALE)*255))
 
+    def get_distance(self) -> (int, int, int, int, int, int):
+        return self.left_tof, self.center_left_tof, self.center_tof, self.center_right_tof, self.right_tof
+
     def get_version(self) -> str:
         return f'{self.version[0]}.{self.version[1]}.{self.version[2]}'
 
