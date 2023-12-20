@@ -7,10 +7,10 @@ robot = ArduinoRobot()
 
 while True:
     try:
-        robot.set_leds(0xff)
-        sleep_ms(1000)
-        robot.set_leds(0x00)
-        sleep_ms(1000)
+        #robot._set_leds(0xff)
+        #sleep_ms(1000)
+        #robot._set_leds(0x00)
+        #sleep_ms(1000)
         robot.set_builtin_led(1)
         sleep_ms(1000)
         robot.set_illuminator(1)
