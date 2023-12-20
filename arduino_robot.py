@@ -1,8 +1,11 @@
 from uart import uart
 import _thread
 from time import sleep_ms
-from pinout_definitions import *
+
 from ucPack import ucPack
+
+from pinout_definitions import *
+from constants import *
 
 
 class ArduinoRobot:
@@ -179,7 +182,7 @@ class ArduinoRobot:
             _, self.left_line, self.center_line, self.right_line = self.packeter.unpacketC3I()
         elif code == ord('c'):
             # color sensor
-            _, self.red, self.green, self.blue = self.packeter.unpacketC3B()
+            _, self.red, self.green, self.blue = self.packeter.unpacketC3I()
         elif code == ord('i'):
             # imu
             _, ax, ay, az, gx, gy, gz = self.packeter.unpacketC6F()
@@ -238,7 +241,13 @@ class ArduinoRobot:
         return bool(self.touch_bits & 0b10000000)
 
     def get_color(self) -> (int, int, int):
-        return self.red, self.green, self.blue
+        """
+        Returns the RGB 3 bytes color
+        :return:
+        """
+        return (int((self.red/COLOR_FULL_SCALE)*255),
+                int((self.green/COLOR_FULL_SCALE)*255),
+                int((self.blue/COLOR_FULL_SCALE)*255))
 
     def get_version(self) -> str:
         return f'{self.version[0]}.{self.version[1]}.{self.version[2]}'

@@ -12,7 +12,7 @@ speed = 0
 while True:
     try:
         r, g, b = robot.get_color()
-        print(f'RED: {hex(r)}, Green: {hex(g)}, Blue: {hex(b)}')
+        print(f'RED: {r}, Green: {g}, Blue: {b}')
         sleep_ms(100)
     except KeyboardInterrupt as e:
         print('over')
