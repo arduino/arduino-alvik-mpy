@@ -2,20 +2,25 @@
 
 ### How to
 
-The steps to follow in order to flash a new firmware (.bin) file on STM32 are the following:
+In order to flash a new firmware.bin file on STM32 follow these steps:
 
-_Uploading the files_
-Please install mpremote to upload files on nano-ESP32 especially for binaries
+_Install mpremote_
+
+mpremote is needed to upload files on the nano-ESP32.
+
+__DO NOT USE LAB FOR MICROPYTHON TO UPLOAD BIN FILES__
 
 ```shell
 (venv)$ pip install mpremote
 ```
-to upload a file:
-``` shell
-(venv)$ mpremote connect "COM1" fs cp firmware.bin :firmware.bin
-```
 
-_Procedure_
+_Procedure using scripts_
+* Build your .bin firmware (e.g. in Arduino IDE select Sketch &#8594; Export Compiled Binary)
+* Rename your .bin file as firmware.bin
+* Move firmware.bin to the arduino_robot_micropython/utilities folder
+* Run flash_firmware.sh (Linux) or flash_firmware.bat (Windows) to upload the files and flash the binary
+
+_Manual Procedure_
 * Build your .bin firmware (e.g. in Arduino IDE select Sketch &#8594; Export Compiled Binary)
 * Upload the utility/firmware_updater.py file
 * Upload your .bin firmware file (e.g.)
@@ -25,6 +30,13 @@ _Procedure_
 STM32_writeMEM("firmware.bin")
 ```
 * Run firmware_updater.py on your device
+
+_Uploading files with mpremote_
+
+to upload a file:
+``` shell
+(venv)$ mpremote connect "COM1" fs cp firmware.bin :firmware.bin
+```
 
 ### Tested on
 
