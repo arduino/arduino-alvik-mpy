@@ -26,10 +26,10 @@ $python_command -m mpremote cp ./firmware.bin :firmware.bin
 echo "Do want to flash the firmware right now? (y/N)"
 read do_flash
 
-if [ "$do_flash" == "y" || "$do_flash" == "Y" ]; then
-  $python_command -m mpremote run firmware_updater.py
+if [ "$do_flash" == "y" ] || [ "$do_flash" == "Y" ]; then
+    $python_command -m mpremote run firmware_updater.py
 else
-  echo "Firmware was not flashed on the remote device."
+    echo "Firmware was not flashed on the remote device."
 fi
 
 $python_command -m mpremote reset
