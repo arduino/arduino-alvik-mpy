@@ -4,6 +4,9 @@ import sys
 
 robot = ArduinoAlvik()
 
+robot.run()
+sleep_ms(100)
+robot.reset_hw()
 
 
 while True:
