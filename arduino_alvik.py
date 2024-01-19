@@ -8,7 +8,7 @@ from pinout_definitions import *
 from constants import *
 
 
-class ArduinoRobot:
+class ArduinoAlvik:
 
     def __init__(self):
         self.packeter = ucPack(200)
