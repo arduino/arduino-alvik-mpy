@@ -32,9 +32,6 @@ while getopts ":p:h" opt; do
     esac
 done
 
-echo "string"
-echo $connect_string
-
 shift $((OPTIND - 1))
 
 if [ -z "$1" ]; then
