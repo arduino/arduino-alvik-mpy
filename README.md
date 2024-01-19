@@ -36,6 +36,22 @@ __NOTE: DO NOT USE LAB FOR MICROPYTHON TO UPLOAD BIN FILES__
 <br>
 <br>
 
+### 3. Update firmware on your Arduino® Alvik
+
+Go into `utilities` folder and run:
+```shell
+Linux
+$ ./flash_firmware.sh -p <device port> <path-to-your-firmware>
+
+Windows
+> install.bat -p <device port> <path-to-your-firmware>
+```
+Answer `y` to flash firmware.
+
+<br>
+<br>
+
+
 ## Examples
 
 Use `mpremote` to copy files into your Arduino® Nano ESP32.
@@ -46,5 +62,7 @@ e.g.
 ```
 
 You can now use Arduino Lab for Micropython to run your examples remotely from the device filesystem.
+
+<br>
 
 __Note: not open bin files with Arduino Lab for Micropython because they will be corrupted__
