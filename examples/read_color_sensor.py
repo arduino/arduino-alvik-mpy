@@ -2,16 +2,16 @@ from arduino_alvik import ArduinoAlvik
 from time import sleep_ms
 import sys
 
-robot = ArduinoAlvik()
+alvik = ArduinoAlvik()
 
-robot.run()
+alvik.run()
 sleep_ms(1000)
-robot.reset_hw()
+alvik.reset_hw()
 speed = 0
 
 while True:
     try:
-        r, g, b = robot.get_color()
+        r, g, b = alvik.get_color()
         print(f'RED: {r}, Green: {g}, Blue: {b}')
         sleep_ms(100)
     except KeyboardInterrupt as e:
