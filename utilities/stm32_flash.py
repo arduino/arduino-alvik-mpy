@@ -1,3 +1,5 @@
+import os
+import sys
 from time import sleep_ms
 from machine import UART, Pin
 
@@ -295,6 +297,9 @@ def STM32_writeMEM(file_path: str):
 
     with open(file_path, 'rb') as f:
         print(f"Flashing {file_path}\n")
+        file_size = os.stat(file_path)[-4]
+        file_pages = int(file_size / 256) + (1 if file_size % 256 != 0 else 0)
+        i = 1
         while True:
             data = bytearray(f.read(256))
             read_bytes = len(data)
@@ -314,7 +319,9 @@ def STM32_writeMEM(file_path: str):
                 print(f"STM32 ERROR FLASHING PAGE: {writeAddress}")
                 return
 
-            print(".")
+            sys.stdout.write('\r')
+            sys.stdout.write(f"{int((i/file_pages)*100)}%")
+            i = i + 1
             _incrementAddress(writeAddress)
 
 
