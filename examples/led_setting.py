@@ -36,5 +36,4 @@ while True:
         sleep_ms(1000)
     except KeyboardInterrupt as e:
         print('over')
-        alvik.set_speed(0, 0)
         sys.exit()

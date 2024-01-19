@@ -166,7 +166,6 @@ class ArduinoAlvik:
         This method is blocking and meant as a thread callback
         Use the method stop to terminate _update and exit the thread
         :param delay_: while loop delay
-        :param id_:
         :return:
         """
         while True:
