@@ -26,6 +26,9 @@ python -m mpremote %port_string% fs cp constants.py :constants.py
 python -m mpremote %port_string% fs cp pinout_definitions.py :pinout_definitions.py
 python -m mpremote %port_string% fs cp uart.py :uart.py
 
+echo Installing dependencies
+python -m mpremote %port_string% mip install github:arduino/ucPack-mpy
+
 python -m mpremote %port_string% reset
 exit /b 0
 

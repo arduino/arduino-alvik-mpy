@@ -52,4 +52,7 @@ $python_command -m mpremote $connect_string fs cp constants.py :constants.py
 $python_command -m mpremote $connect_string fs cp pinout_definitions.py :pinout_definitions.py
 $python_command -m mpremote $connect_string fs cp uart.py :uart.py
 
+echo "Installing dependencies"
+$python_command -m mpremote $connect_string mip install github:arduino/ucPack-mpy
+
 $python_command -m mpremote $connect_string reset
