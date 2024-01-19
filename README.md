@@ -44,9 +44,11 @@ Linux
 $ ./flash_firmware.sh -p <device port> <path-to-your-firmware>
 
 Windows
-> install.bat -p <device port> <path-to-your-firmware>
+> flash_firmware.bat -p <device port> <path-to-your-firmware>
 ```
 Answer `y` to flash firmware.
+
+Note: The -p parameter is optional
 
 <br>
 <br>
