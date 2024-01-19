@@ -49,20 +49,20 @@ else
 fi
 
 # Uncomment the following line on windows machines
-python_command="python"
+# python_command="python"
 
 echo "Installing flash firmware utilities..."
 
 $python_command -m mpremote $connect_string fs rm :firmware_updater.py
 $python_command -m mpremote $connect_string fs rm :stm32_flash.py
 
-$python_command -m mpremote $connect_string fs cp ./firmware_updater.py :firmware_updater.py
-$python_command -m mpremote $connect_string fs cp ./stm32_flash.py :stm32_flash.py
+$python_command -m mpremote $connect_string fs cp firmware_updater.py :firmware_updater.py
+$python_command -m mpremote $connect_string fs cp stm32_flash.py :stm32_flash.py
 
 echo "Uploading $filename..."
 
 $python_command -m mpremote $connect_string fs rm :firmware.bin
-$python_command -m mpremote $connect_string fs cp ./$filename :firmware.bin
+$python_command -m mpremote $connect_string fs cp $filename :firmware.bin
 
 echo "Do want to flash the firmware right now? (y/N)"
 read do_flash
