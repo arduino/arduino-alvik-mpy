@@ -1,8 +1,9 @@
-from arduino_robot import ArduinoRobot
+from arduino_alvik import ArduinoAlvik
 from time import sleep_ms
 import sys
 
-robot = ArduinoRobot()
+robot = ArduinoAlvik()
+
 
 
 while True:
