@@ -16,9 +16,18 @@ __DO NOT USE LAB FOR MICROPYTHON TO UPLOAD BIN FILES__
 
 _Procedure using scripts_
 * Build your .bin firmware (e.g. in Arduino IDE select Sketch &#8594; Export Compiled Binary)
-* Rename your .bin file as firmware.bin
-* Move firmware.bin to the arduino_robot_micropython/utilities folder
-* Run flash_firmware.sh (Linux) or flash_firmware.bat (Windows) to upload the files and flash the binary
+* Move your firmware binary to the arduino_robot_micropython/utilities folder
+* Run flash_firmware.sh (Linux) or flash_firmware.bat (Windows) to upload the files and flash the binary passing the filename as a parameter:
+
+``` shell
+Linux
+$ ./flash_firmware.sh -p <device_port> <my_firmware.bin>
+
+Windows
+> flash_firmware.bat -p <device_port> <my_firmware.bin>
+```
+
+Note: The -p parameter is optional
 
 _Manual Procedure_
 * Build your .bin firmware (e.g. in Arduino IDE select Sketch &#8594; Export Compiled Binary)
