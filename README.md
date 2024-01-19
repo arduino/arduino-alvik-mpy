@@ -48,7 +48,7 @@ Windows
 ```
 Answer `y` to flash firmware.
 
-Note: The -p parameter is optional
+***Note: The -p parameter is optional***
 
 <br>
 <br>
