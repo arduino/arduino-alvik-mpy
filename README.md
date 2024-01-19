@@ -31,6 +31,9 @@ Windows
 > install.bat -p <device port>
 ```
 
+***Note: The -p parameter is optional***
+
+
 __NOTE: DO NOT USE LAB FOR MICROPYTHON TO UPLOAD BIN FILES__
 
 <br>
