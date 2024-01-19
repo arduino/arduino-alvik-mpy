@@ -43,7 +43,7 @@ fi
 # python_command="python"
 
 $python_command -m mpremote $connect_string fs rm :arduino_alvik.py
-$python_command -m mpremote $connect_string $connect_string fs rm :constants.py
+$python_command -m mpremote $connect_string fs rm :constants.py
 $python_command -m mpremote $connect_string fs rm :pinout_definitions.py
 $python_command -m mpremote $connect_string fs rm :uart.py
 
