@@ -21,7 +21,15 @@
 
 ### 2. install library
 
-Run `install.sh` (on Linux/MacOS) or `install.bat` (Windows) to upload all files needed to run the Arduino Alvik micropython library.
+Run the following line to upload all files and download the dependencies needed to run the Arduino Alvik micropython library.
+
+```shell
+Linux
+$ ./install.sh -p <device port>
+
+Windows
+> install.bat -p <device port>
+```
 
 __NOTE: DO NOT USE LAB FOR MICROPYTHON TO UPLOAD BIN FILES__
 
