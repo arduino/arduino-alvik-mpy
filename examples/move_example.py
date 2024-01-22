@@ -3,11 +3,7 @@ from time import sleep_ms
 import sys
 
 alvik = ArduinoAlvik()
-
-alvik.run()
-sleep_ms(100)
-alvik.reset_hw()
-
+alvik.begin()
 
 while True:
     try:

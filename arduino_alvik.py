@@ -38,7 +38,12 @@ class ArduinoAlvik:
         self.bottom_tof = None
         self.version = [None, None, None]
 
-    def run(self):
+    def begin(self):
+        self._run()
+        sleep_ms(100)
+        self._reset_hw()
+
+    def _run(self):
         """
         Runs robot background operations (e.g. threaded update)
         :return:
@@ -54,7 +59,7 @@ class ArduinoAlvik:
         self._update_thread_running = False
 
     @staticmethod
-    def reset_hw():
+    def _reset_hw():
         """
         Resets the STM32
         :return:
