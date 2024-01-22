@@ -42,11 +42,12 @@ class ArduinoAlvik:
         if not CHECK_STM32.value():
             print("\nTurn on your Arduino Alvik!\n")
             return -1
-        self._run()
+        self._begin_update_thread()
         sleep_ms(100)
         self._reset_hw()
+        return 0
 
-    def _run(self):
+    def _begin_update_thread(self):
         """
         Runs robot background operations (e.g. threaded update)
         :return:
@@ -54,12 +55,21 @@ class ArduinoAlvik:
         self._update_thread_running = True
         self._update_thread_id = _thread.start_new_thread(self._update, (1,))
 
-    def stop(self):
+    def _stop_update_thread(self):
         """
         Stops the background operations
         :return:
         """
         self._update_thread_running = False
+
+    def stop(self):
+        """
+        Stops all Alvik operations
+        :return:
+        """
+        # stop engines
+        # turn off UI leds
+        self._stop_update_thread()
 
     @staticmethod
     def _reset_hw():
