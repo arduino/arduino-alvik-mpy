@@ -3,7 +3,9 @@ from time import sleep_ms
 import sys
 
 alvik = ArduinoAlvik()
-alvik.begin()
+if alvik.begin() < 0:
+    sys.exit()
+
 speed = 0
 
 while True:

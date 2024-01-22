@@ -38,7 +38,10 @@ class ArduinoAlvik:
         self.bottom_tof = None
         self.version = [None, None, None]
 
-    def begin(self):
+    def begin(self) -> int:
+        if not CHECK_STM32.value():
+            print("\nTurn on your Arduino Alvik!\n")
+            return -1
         self._run()
         sleep_ms(100)
         self._reset_hw()
