@@ -5,6 +5,7 @@ from time import sleep_ms
 from ucPack import ucPack
 
 from pinout_definitions import *
+from robot_definitions import *
 from constants import *
 
 
@@ -12,6 +13,8 @@ class ArduinoAlvik:
 
     def __init__(self):
         self.packeter = ucPack(200)
+        self.left_wheel = ArduinoAlvikWheel(self.packeter, ord('L'))
+        self.right_wheel = ArduinoAlvikWheel(self.packeter, ord('R'))
         self._update_thread_running = False
         self._update_thread_id = None
         self.l_speed = None
@@ -215,6 +218,8 @@ class ArduinoAlvik:
         if code == ord('j'):
             # joint speed
             _, self.l_speed, self.r_speed = self.packeter.unpacketC2F()
+            self.left_wheel._speed = self.l_speed
+            self.right_wheel._speed = self.r_speed
         elif code == ord('l'):
             # line sensor
             _, self.left_line, self.center_line, self.right_line = self.packeter.unpacketC3I()
@@ -300,3 +305,62 @@ class ArduinoAlvik:
             if str(a).startswith('_'):
                 continue
             print(f'{str(a).upper()} = {getattr(self, str(a))}')
+
+
+class ArduinoAlvikWheel:
+
+    def __init__(self, packeter: ucPack, label: int, wheel_diameter_mm: float = WHEEL_DIAMETER_MM):
+        self._packeter = packeter
+        self._label = label
+        self._wheel_diameter_mm = wheel_diameter_mm
+        self._speed = None
+
+    def reset(self, initial_position: float = 0.0):
+        pass
+
+    def set_pid_gains(self, kp: float = MOTOR_KP_DEFAULT, ki: float = MOTOR_KI_DEFAULT, kd: float = MOTOR_KD_DEFAULT):
+        """
+        Set PID gains for Alvik wheels
+        :param kp: proportional gain
+        :param ki: integration gain
+        :param kd: derivative gain
+        :return:
+        """
+
+        self._packeter.packetC1B3F(ord('P'), self._label, kp, ki, kd)
+        uart.write(self._packeter.msg[0:self._packeter.msg_size])
+
+    def stop(self):
+        """
+        Stop Alvik wheel
+        :return:
+        """
+        self.set_speed(0)
+
+    def set_speed(self, velocity: float, unit: str = 'rpm'):
+        """
+        Sets left/right motor speed
+        :param velocity: the speed of the motor
+        :param unit: the unit of measurement
+        :return:
+        """
+
+        self._packeter.packetC2B1F(ord('W'), self._label & 0xFF, ord('V'), velocity)
+        uart.write(self._packeter.msg[0:self._packeter.msg_size])
+
+    def get_speed(self):
+        """
+        Gets the current RPM speed of the wheel
+        :return:
+        """
+        return self._speed
+
+    def set_position(self, position: float, unit: str = 'deg'):
+        """
+        Sets left/right motor speed
+        :param position: the speed of the motor
+        :param unit: the unit of measurement
+        :return:
+        """
+        self._packeter.packetC2B1F(ord('W'), self._label & 0xFF, ord('P'), position)
+        uart.write(self._packeter.msg[0:self._packeter.msg_size])
