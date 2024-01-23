@@ -1,3 +1,5 @@
+import math
+
 from uart import uart
 import _thread
 from time import sleep_ms
@@ -13,15 +15,15 @@ class ArduinoAlvik:
 
     def __init__(self):
         self.packeter = ucPack(200)
-        self.left_wheel = ArduinoAlvikWheel(self.packeter, ord('L'))
-        self.right_wheel = ArduinoAlvikWheel(self.packeter, ord('R'))
+        self.left_wheel = _ArduinoAlvikWheel(self.packeter, ord('L'))
+        self.right_wheel = _ArduinoAlvikWheel(self.packeter, ord('R'))
         self.led_state = [None]
-        self.left_led = ArduinoAlvikRgbLed(self.packeter, 'left', self.led_state, rgb_mask=[0b00000100, 0b00001000, 0b00010000])
-        self.right_led = ArduinoAlvikRgbLed(self.packeter, 'right', self.led_state, rgb_mask=[0b00100000, 0b01000000, 0b10000000])
+        self.left_led = _ArduinoAlvikRgbLed(self.packeter, 'left', self.led_state,
+                                            rgb_mask=[0b00000100, 0b00001000, 0b00010000])
+        self.right_led = _ArduinoAlvikRgbLed(self.packeter, 'right', self.led_state,
+                                             rgb_mask=[0b00100000, 0b01000000, 0b10000000])
         self._update_thread_running = False
         self._update_thread_id = None
-        self.l_speed = None
-        self.r_speed = None
         self.battery_perc = None
         self.touch_bits = None
         self.behaviour = None
@@ -50,6 +52,7 @@ class ArduinoAlvik:
         self._begin_update_thread()
         sleep_ms(100)
         self._reset_hw()
+        sleep_ms(1000)
         return 0
 
     def _begin_update_thread(self):
@@ -73,7 +76,12 @@ class ArduinoAlvik:
         :return:
         """
         # stop engines
+        self.set_wheels_speed(0, 0)
+
         # turn off UI leds
+        self._set_leds(0x00)
+
+        # stop the update thrad
         self._stop_update_thread()
 
     @staticmethod
@@ -88,16 +96,24 @@ class ArduinoAlvik:
         RESET_STM32.value(1)
         sleep_ms(100)
 
-    def get_speeds(self) -> (float, float):
-        return self.l_speed, self.r_speed
+    def get_wheels_speed(self) -> (float, float):
+        return self.left_wheel.get_speed(), self.right_wheel.get_speed()
 
-    def set_speeds(self, left_speed: float, right_speed: float):
+    def set_wheels_speed(self, left_speed: float, right_speed: float, unit: str = 'rpm'):
         """
         Sets left/right motor speed
         :param left_speed:
         :param right_speed:
+        :param unit: the speed unit of measurement (default: 'rpm')
         :return:
         """
+
+        if unit not in angular_velocity_units:
+            return
+        elif unit == '%':
+            left_speed = perc_to_rpm(left_speed)
+            right_speed = perc_to_rpm(right_speed)
+
         self.packeter.packetC2F(ord('J'), left_speed, right_speed)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
 
@@ -243,9 +259,7 @@ class ArduinoAlvik:
         code = self.packeter.payload[0]
         if code == ord('j'):
             # joint speed
-            _, self.l_speed, self.r_speed = self.packeter.unpacketC2F()
-            self.left_wheel._speed = self.l_speed
-            self.right_wheel._speed = self.r_speed
+            _, self.left_wheel._speed, self.right_wheel._speed = self.packeter.unpacketC2F()
         elif code == ord('l'):
             # line sensor
             _, self.left_line, self.center_line, self.right_line = self.packeter.unpacketC3I()
@@ -333,7 +347,7 @@ class ArduinoAlvik:
             print(f'{str(a).upper()} = {getattr(self, str(a))}')
 
 
-class ArduinoAlvikWheel:
+class _ArduinoAlvikWheel:
 
     def __init__(self, packeter: ucPack, label: int, wheel_diameter_mm: float = WHEEL_DIAMETER_MM):
         self._packeter = packeter
@@ -371,6 +385,11 @@ class ArduinoAlvikWheel:
         :return:
         """
 
+        if unit not in angular_velocity_units:
+            return
+        elif unit == '%':
+            velocity = perc_to_rpm(velocity)
+
         self._packeter.packetC2B1F(ord('W'), self._label & 0xFF, ord('V'), velocity)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
 
@@ -388,12 +407,18 @@ class ArduinoAlvikWheel:
         :param unit: the unit of measurement
         :return:
         """
+
+        if unit not in angle_units:
+            return
+        elif unit == 'rad':
+            position = rad_to_deg(position)
+
         self._packeter.packetC2B1F(ord('W'), self._label & 0xFF, ord('P'), position)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
 
 
-class ArduinoAlvikRgbLed:
-    def __init__(self, packeter: ucPack, label: str, led_state: list[int], rgb_mask: list[int]):
+class _ArduinoAlvikRgbLed:
+    def __init__(self, packeter: ucPack, label: str, led_state: list[int | None], rgb_mask: list[int]):
         self._packeter = packeter
         self.label = label
         self._rgb_mask = rgb_mask
@@ -416,3 +441,18 @@ class ArduinoAlvikRgbLed:
         self._led_state[0] = led_status
         self._packeter.packetC1B(ord('L'), led_status & 0xFF)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
+
+
+# Units and unit conversion methods
+
+angular_velocity_units = ['rpm', '%']
+angle_units = ['deg', 'rad']
+distance_units = ['mm', 'cm']
+
+
+def perc_to_rpm(percent: float) -> float:
+    return (percent / 100.0)*MOTOR_MAX_RPM
+
+
+def rad_to_deg(rad: float) -> float:
+    return rad*180/math.pi
