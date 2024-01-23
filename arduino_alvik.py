@@ -146,6 +146,16 @@ class ArduinoAlvik:
 
         return self.left_line, self.center_line, self.right_line
 
+    def drive(self, linear_velocity: float, angular_velocity: float):
+        """
+        Drives the robot by linear and angular velocity
+        :param linear_velocity:
+        :param angular_velocity:
+        :return:
+        """
+        self.packeter.packetC2F(ord('V'), linear_velocity, angular_velocity)
+        uart.write(self.packeter.msg[0:self.packeter.msg_size])
+
     def set_servo_positions(self, a_position: int, b_position: int):
         """
         Sets A/B servomotor angle
