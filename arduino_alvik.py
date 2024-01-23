@@ -46,6 +46,10 @@ class ArduinoAlvik:
         self.version = [None, None, None]
 
     def begin(self) -> int:
+        """
+        Begins all Alvik operations
+        :return:
+        """
         if not CHECK_STM32.value():
             print("\nTurn on your Arduino Alvik!\n")
             return -1
@@ -97,6 +101,10 @@ class ArduinoAlvik:
         sleep_ms(100)
 
     def get_wheels_speed(self) -> (float, float):
+        """
+        Returns the speed of the wheels
+        :return: left_wheel_speed, right_wheel_speed
+        """
         return self.left_wheel.get_speed(), self.right_wheel.get_speed()
 
     def set_wheels_speed(self, left_speed: float, right_speed: float, unit: str = 'rpm'):
@@ -133,7 +141,7 @@ class ArduinoAlvik:
     def get_orientation(self) -> (float, float, float):
         """
         Returns the orientation of the IMU
-        :return:
+        :return: roll, pitch, yaw
         """
 
         return self.roll, self.pitch, self.yaw
@@ -141,7 +149,7 @@ class ArduinoAlvik:
     def get_line_sensors(self) -> (int, int, int):
         """
         Returns the line sensors readout
-        :return:
+        :return: left_line, center_line, right_line
         """
 
         return self.left_line, self.center_line, self.right_line
@@ -307,36 +315,72 @@ class ArduinoAlvik:
         return 0
 
     def _get_touch(self) -> int:
+        """
+        Returns the touch sensor's state
+        :return: touch_bits
+        """
         return self.touch_bits
 
     def get_touch_any(self) -> bool:
+        """
+        Returns true if any button is pressed
+        :return:
+        """
         return bool(self.touch_bits & 0b00000001)
 
     def get_touch_ok(self) -> bool:
+        """
+        Returns true if ok button is pressed
+        :return:
+        """
         return bool(self.touch_bits & 0b00000010)
 
     def get_touch_cancel(self) -> bool:
+        """
+        Returns true if cancel button is pressed
+        :return:
+        """
         return bool(self.touch_bits & 0b00000100)
 
     def get_touch_center(self) -> bool:
+        """
+        Returns true if center button is pressed
+        :return:
+        """
         return bool(self.touch_bits & 0b00001000)
 
     def get_touch_up(self) -> bool:
+        """
+        Returns true if up button is pressed
+        :return:
+        """
         return bool(self.touch_bits & 0b00010000)
 
     def get_touch_left(self) -> bool:
+        """
+        Returns true if left button is pressed
+        :return:
+        """
         return bool(self.touch_bits & 0b00100000)
 
     def get_touch_down(self) -> bool:
+        """
+        Returns true if down button is pressed
+        :return:
+        """
         return bool(self.touch_bits & 0b01000000)
 
     def get_touch_right(self) -> bool:
+        """
+        Returns true if right button is pressed
+        :return:
+        """
         return bool(self.touch_bits & 0b10000000)
 
     def get_color(self) -> (int, int, int):
         """
-        Returns the RGB color readout
-        :return:
+        Returns the RGB color (raw) readout
+        :return: red, green, blue
         """
 
         return self.red, self.green, self.blue
@@ -345,12 +389,24 @@ class ArduinoAlvik:
         #         int((self.blue/COLOR_FULL_SCALE)*255))
 
     def get_distance(self) -> (int, int, int, int, int, int):
+        """
+        Returns the distance readout of the TOF sensor
+        :return: left_tof, center_left_tof, center_tof, center_right_tof, right_tof
+        """
         return self.left_tof, self.center_left_tof, self.center_tof, self.center_right_tof, self.right_tof
 
     def get_version(self) -> str:
+        """
+        Returns the firmware version of the Alvik
+        :return:
+        """
         return f'{self.version[0]}.{self.version[1]}.{self.version[2]}'
 
     def print_status(self):
+        """
+        Prints the Alvik status
+        :return:
+        """
         for a in vars(self):
             if str(a).startswith('_'):
                 continue
@@ -366,6 +422,11 @@ class _ArduinoAlvikWheel:
         self._speed = None
 
     def reset(self, initial_position: float = 0.0):
+        """
+        Resets the wheel reference position
+        :param initial_position:
+        :return:
+        """
         pass
 
     def set_pid_gains(self, kp: float = MOTOR_KP_DEFAULT, ki: float = MOTOR_KI_DEFAULT, kd: float = MOTOR_KD_DEFAULT):
@@ -389,7 +450,7 @@ class _ArduinoAlvikWheel:
 
     def set_speed(self, velocity: float, unit: str = 'rpm'):
         """
-        Sets left/right motor speed
+        Sets the motor speed
         :param velocity: the speed of the motor
         :param unit: the unit of measurement
         :return:
@@ -403,9 +464,9 @@ class _ArduinoAlvikWheel:
         self._packeter.packetC2B1F(ord('W'), self._label & 0xFF, ord('V'), velocity)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
 
-    def get_speed(self):
+    def get_speed(self) -> float:
         """
-        Gets the current RPM speed of the wheel
+        Returns the current RPM speed of the wheel
         :return:
         """
         return self._speed
@@ -461,8 +522,18 @@ distance_units = ['mm', 'cm']
 
 
 def perc_to_rpm(percent: float) -> float:
+    """
+    Converts percent of max_rpm to rpm
+    :param percent:
+    :return:
+    """
     return (percent / 100.0)*MOTOR_MAX_RPM
 
 
 def rad_to_deg(rad: float) -> float:
+    """
+    Converts radians to degrees
+    :param rad:
+    :return:
+    """
     return rad*180/math.pi
