@@ -15,6 +15,9 @@ class ArduinoAlvik:
         self.packeter = ucPack(200)
         self.left_wheel = ArduinoAlvikWheel(self.packeter, ord('L'))
         self.right_wheel = ArduinoAlvikWheel(self.packeter, ord('R'))
+        self.led_state = [None]
+        self.left_led = ArduinoAlvikRgbLed(self.packeter, 'left', self.led_state, rgb_mask=[0b00000100, 0b00001000, 0b00010000])
+        self.right_led = ArduinoAlvikRgbLed(self.packeter, 'right', self.led_state, rgb_mask=[0b00100000, 0b01000000, 0b10000000])
         self._update_thread_running = False
         self._update_thread_id = None
         self.l_speed = None
@@ -22,7 +25,6 @@ class ArduinoAlvik:
         self.battery_perc = None
         self.touch_bits = None
         self.behaviour = None
-        self.led_state = None
         self.red = None
         self.green = None
         self.blue = None
@@ -149,37 +151,61 @@ class ArduinoAlvik:
         5->right_red 6->right_green 7->right_blue
         :return:
         """
-        self.led_state = led_state & 0xFF
-        self.packeter.packetC1B(ord('L'), self.led_state)
+        self.led_state[0] = led_state & 0xFF
+        self.packeter.packetC1B(ord('L'), self.led_state[0])
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
 
     def set_builtin_led(self, value: bool):
-        if self.led_state is None:
+        """
+        Turns on/off the builtin led
+        :param value:
+        :return:
+        """
+        if self.led_state[0] is None:
             self._set_leds(0x00)
-        self.led_state = self.led_state | 0b00000001 if value else self.led_state & 0b11111110
-        self._set_leds(self.led_state)
+        self.led_state[0] = self.led_state[0] | 0b00000001 if value else self.led_state[0] & 0b11111110
+        self._set_leds(self.led_state[0])
 
     def set_illuminator(self, value: bool):
-        if self.led_state is None:
+        """
+        Turns on/off the illuminator led
+        :param value:
+        :return:
+        """
+        if self.led_state[0] is None:
             self._set_leds(0x00)
-        self.led_state = self.led_state | 0b00000010 if value else self.led_state & 0b11111101
-        self._set_leds(self.led_state)
+        self.led_state[0] = self.led_state[0] | 0b00000010 if value else self.led_state[0] & 0b11111101
+        self._set_leds(self.led_state[0])
 
     def set_left_led_color(self, red: bool, green: bool, blue: bool):
-        if self.led_state is None:
+        """
+        Sets the r,g,b state of the left LED
+        :param red:
+        :param green:
+        :param blue:
+        :return:
+        """
+        if self.led_state[0] is None:
             self._set_leds(0x00)
-        self.led_state = self.led_state | 0b00000100 if red else self.led_state & 0b11111011
-        self.led_state = self.led_state | 0b00001000 if green else self.led_state & 0b11110111
-        self.led_state = self.led_state | 0b00010000 if blue else self.led_state & 0b11101111
-        self._set_leds(self.led_state)
+        self.led_state[0] = self.led_state[0] | 0b00000100 if red else self.led_state[0] & 0b11111011
+        self.led_state[0] = self.led_state[0] | 0b00001000 if green else self.led_state[0] & 0b11110111
+        self.led_state[0] = self.led_state[0] | 0b00010000 if blue else self.led_state[0] & 0b11101111
+        self._set_leds(self.led_state[0])
 
     def set_right_led_color(self, red: bool, green: bool, blue: bool):
-        if self.led_state is None:
+        """
+        Sets the r,g,b state of the right LED
+        :param red:
+        :param green:
+        :param blue:
+        :return:
+        """
+        if self.led_state[0] is None:
             self._set_leds(0x00)
-        self.led_state = self.led_state | 0b00100000 if red else self.led_state & 0b11011111
-        self.led_state = self.led_state | 0b01000000 if green else self.led_state & 0b10111111
-        self.led_state = self.led_state | 0b10000000 if blue else self.led_state & 0b01111111
-        self._set_leds(self.led_state)
+        self.led_state[0] = self.led_state[0] | 0b00100000 if red else self.led_state[0] & 0b11011111
+        self.led_state[0] = self.led_state[0] | 0b01000000 if green else self.led_state[0] & 0b10111111
+        self.led_state[0] = self.led_state[0] | 0b10000000 if blue else self.led_state[0] & 0b01111111
+        self._set_leds(self.led_state[0])
 
     def _update(self, delay_=1):
         """
@@ -363,4 +389,30 @@ class ArduinoAlvikWheel:
         :return:
         """
         self._packeter.packetC2B1F(ord('W'), self._label & 0xFF, ord('P'), position)
+        uart.write(self._packeter.msg[0:self._packeter.msg_size])
+
+
+class ArduinoAlvikRgbLed:
+    def __init__(self, packeter: ucPack, label: str, led_state: list[int], rgb_mask: list[int]):
+        self._packeter = packeter
+        self.label = label
+        self._rgb_mask = rgb_mask
+        self._led_state = led_state
+
+    def set_color(self, red: bool, green: bool, blue: bool):
+        """
+        Sets the LED's r,g,b state
+        :param red:
+        :param green:
+        :param blue:
+        :return:
+        """
+        led_status = self._led_state[0]
+        if led_status is None:
+            return
+        led_status = led_status | self._rgb_mask[0] if red else led_status & (0b11111111 - self._rgb_mask[0])
+        led_status = led_status | self._rgb_mask[1] if green else led_status & (0b11111111 - self._rgb_mask[1])
+        led_status = led_status | self._rgb_mask[2] if blue else led_status & (0b11111111 - self._rgb_mask[2])
+        self._led_state[0] = led_status
+        self._packeter.packetC1B(ord('L'), led_status & 0xFF)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
