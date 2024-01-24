@@ -211,36 +211,6 @@ class ArduinoAlvik:
         self.led_state[0] = self.led_state[0] | 0b00000010 if value else self.led_state[0] & 0b11111101
         self._set_leds(self.led_state[0])
 
-    def set_left_led_color(self, red: bool, green: bool, blue: bool):
-        """
-        Sets the r,g,b state of the left LED
-        :param red:
-        :param green:
-        :param blue:
-        :return:
-        """
-        if self.led_state[0] is None:
-            self._set_leds(0x00)
-        self.led_state[0] = self.led_state[0] | 0b00000100 if red else self.led_state[0] & 0b11111011
-        self.led_state[0] = self.led_state[0] | 0b00001000 if green else self.led_state[0] & 0b11110111
-        self.led_state[0] = self.led_state[0] | 0b00010000 if blue else self.led_state[0] & 0b11101111
-        self._set_leds(self.led_state[0])
-
-    def set_right_led_color(self, red: bool, green: bool, blue: bool):
-        """
-        Sets the r,g,b state of the right LED
-        :param red:
-        :param green:
-        :param blue:
-        :return:
-        """
-        if self.led_state[0] is None:
-            self._set_leds(0x00)
-        self.led_state[0] = self.led_state[0] | 0b00100000 if red else self.led_state[0] & 0b11011111
-        self.led_state[0] = self.led_state[0] | 0b01000000 if green else self.led_state[0] & 0b10111111
-        self.led_state[0] = self.led_state[0] | 0b10000000 if blue else self.led_state[0] & 0b01111111
-        self._set_leds(self.led_state[0])
-
     def _update(self, delay_=1):
         """
         Updates the robot status reading/parsing messages from UART.
