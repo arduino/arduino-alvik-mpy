@@ -13,6 +13,8 @@ from constants import *
 
 class ArduinoAlvik:
 
+    _update_thread_running = False
+
     def __init__(self):
         self.packeter = ucPack(200)
         self.left_wheel = _ArduinoAlvikWheel(self.packeter, ord('L'))
@@ -64,15 +66,17 @@ class ArduinoAlvik:
         Runs robot background operations (e.g. threaded update)
         :return:
         """
-        self._update_thread_running = True
-        self._update_thread_id = _thread.start_new_thread(self._update, (1,))
+
+        if not ArduinoAlvik._update_thread_running:
+            ArduinoAlvik._update_thread_running = True
+            self._update_thread_id = _thread.start_new_thread(self._update, (1,))
 
     def _stop_update_thread(self):
         """
         Stops the background operations
         :return:
         """
-        self._update_thread_running = False
+        ArduinoAlvik._update_thread_running = False
 
     def stop(self):
         """
@@ -220,7 +224,7 @@ class ArduinoAlvik:
         :return:
         """
         while True:
-            if not self._update_thread_running:
+            if not ArduinoAlvik._update_thread_running:
                 break
             if self._read_message():
                 self._parse_message()
