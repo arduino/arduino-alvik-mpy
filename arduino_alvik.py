@@ -71,7 +71,8 @@ class ArduinoAlvik:
             ArduinoAlvik._update_thread_running = True
             self._update_thread_id = _thread.start_new_thread(self._update, (1,))
 
-    def _stop_update_thread(self):
+    @staticmethod
+    def _stop_update_thread():
         """
         Stops the background operations
         :return:
