@@ -3,23 +3,19 @@ from time import sleep_ms
 import sys
 
 alvik = ArduinoAlvik()
-
-alvik.run()
-sleep_ms(100)
-alvik.reset_hw()
-
+alvik.begin()
 
 while True:
     try:
-        alvik.set_speeds(10, 10)
+        alvik.set_wheels_speed(10, 10)
         sleep_ms(1000)
 
-        alvik.set_speeds(30, 60)
+        alvik.set_wheels_speed(30, 60)
         sleep_ms(1000)
 
-        alvik.set_speeds(60, 30)
+        alvik.set_wheels_speed(60, 30)
         sleep_ms(1000)
     except KeyboardInterrupt as e:
         print('over')
-        alvik.set_speeds(0, 0)
+        alvik.stop()
         sys.exit()

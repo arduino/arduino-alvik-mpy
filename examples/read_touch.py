@@ -3,10 +3,7 @@ from time import sleep_ms
 import sys
 
 alvik = ArduinoAlvik()
-
-alvik.run()
-sleep_ms(1000)
-alvik.reset_hw()
+alvik.begin()
 speed = 0
 
 while True:
