@@ -14,6 +14,12 @@ from constants import *
 class ArduinoAlvik:
 
     _update_thread_running = False
+    _update_thread_id = None
+
+    def __new__(cls):
+        if not hasattr(cls, 'instance'):
+            cls.instance = super(ArduinoAlvik, cls).__new__(cls)
+        return cls.instance
 
     def __init__(self):
         self.packeter = ucPack(200)
@@ -24,8 +30,6 @@ class ArduinoAlvik:
                                             rgb_mask=[0b00000100, 0b00001000, 0b00010000])
         self.right_led = _ArduinoAlvikRgbLed(self.packeter, 'right', self.led_state,
                                              rgb_mask=[0b00100000, 0b01000000, 0b10000000])
-        self._update_thread_running = False
-        self._update_thread_id = None
         self.battery_perc = None
         self.touch_bits = None
         self.behaviour = None
@@ -67,17 +71,17 @@ class ArduinoAlvik:
         :return:
         """
 
-        if not ArduinoAlvik._update_thread_running:
-            ArduinoAlvik._update_thread_running = True
-            self._update_thread_id = _thread.start_new_thread(self._update, (1,))
+        if not self.__class__._update_thread_running:
+            self.__class__._update_thread_running = True
+            self.__class__._update_thread_id = _thread.start_new_thread(self._update, (1,))
 
-    @staticmethod
-    def _stop_update_thread():
+    @classmethod
+    def _stop_update_thread(cls):
         """
         Stops the background operations
         :return:
         """
-        ArduinoAlvik._update_thread_running = False
+        cls._update_thread_running = False
 
     def stop(self):
         """
