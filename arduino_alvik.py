@@ -13,6 +13,14 @@ from constants import *
 
 class ArduinoAlvik:
 
+    _update_thread_running = False
+    _update_thread_id = None
+
+    def __new__(cls):
+        if not hasattr(cls, 'instance'):
+            cls.instance = super(ArduinoAlvik, cls).__new__(cls)
+        return cls.instance
+
     def __init__(self):
         self.packeter = ucPack(200)
         self.left_wheel = _ArduinoAlvikWheel(self.packeter, ord('L'))
@@ -22,8 +30,6 @@ class ArduinoAlvik:
                                             rgb_mask=[0b00000100, 0b00001000, 0b00010000])
         self.right_led = _ArduinoAlvikRgbLed(self.packeter, 'right', self.led_state,
                                              rgb_mask=[0b00100000, 0b01000000, 0b10000000])
-        self._update_thread_running = False
-        self._update_thread_id = None
         self.battery_perc = None
         self.touch_bits = None
         self.behaviour = None
@@ -64,15 +70,18 @@ class ArduinoAlvik:
         Runs robot background operations (e.g. threaded update)
         :return:
         """
-        self._update_thread_running = True
-        self._update_thread_id = _thread.start_new_thread(self._update, (1,))
 
-    def _stop_update_thread(self):
+        if not self.__class__._update_thread_running:
+            self.__class__._update_thread_running = True
+            self.__class__._update_thread_id = _thread.start_new_thread(self._update, (1,))
+
+    @classmethod
+    def _stop_update_thread(cls):
         """
         Stops the background operations
         :return:
         """
-        self._update_thread_running = False
+        cls._update_thread_running = False
 
     def stop(self):
         """
@@ -220,7 +229,7 @@ class ArduinoAlvik:
         :return:
         """
         while True:
-            if not self._update_thread_running:
+            if not ArduinoAlvik._update_thread_running:
                 break
             if self._read_message():
                 self._parse_message()

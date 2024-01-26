@@ -13,5 +13,5 @@ while True:
         sleep_ms(100)
     except KeyboardInterrupt as e:
         print('over')
-        break
-sys.exit()
+        alvik.stop()
+        sys.exit()

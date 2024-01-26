@@ -23,5 +23,5 @@ while True:
     except KeyboardInterrupt as e:
         print('over')
         alvik.stop()
-        break
-sys.exit()
+        sys.exit()
+
