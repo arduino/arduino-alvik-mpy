@@ -57,6 +57,7 @@ class ArduinoAlvik:
         sleep_ms(100)
         self._reset_hw()
         sleep_ms(1000)
+        self.set_illuminator(True)
         return 0
 
     def _begin_update_thread(self):
