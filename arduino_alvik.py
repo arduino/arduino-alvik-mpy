@@ -63,6 +63,7 @@ class ArduinoAlvik:
         sleep_ms(100)
         self._reset_hw()
         sleep_ms(1000)
+        self.set_illuminator(True)
         return 0
 
     def _begin_update_thread(self):
@@ -285,6 +286,9 @@ class ArduinoAlvik:
         elif code == ord('q'):
             # imu position
             _, self.roll, self.pitch, self.yaw = self.packeter.unpacketC3F()
+        if code == ord('w'):
+            # wheels position
+            _, self.left_wheel._position, self.right_wheel._position = self.packeter.unpacketC2F()
         elif code == 0x7E:
             # firmware version
             _, *self.version = self.packeter.unpacketC3B()
@@ -399,6 +403,7 @@ class _ArduinoAlvikWheel:
         self._label = label
         self._wheel_diameter_mm = wheel_diameter_mm
         self._speed = None
+        self._position = None
 
     def reset(self, initial_position: float = 0.0):
         """
@@ -406,7 +411,8 @@ class _ArduinoAlvikWheel:
         :param initial_position:
         :return:
         """
-        pass
+        self._packeter.packetC2B1F(ord('W'), self._label & 0xFF, ord('Z'), initial_position)
+        uart.write(self._packeter.msg[0:self._packeter.msg_size])
 
     def set_pid_gains(self, kp: float = MOTOR_KP_DEFAULT, ki: float = MOTOR_KI_DEFAULT, kd: float = MOTOR_KD_DEFAULT):
         """
@@ -417,7 +423,7 @@ class _ArduinoAlvikWheel:
         :return:
         """
 
-        self._packeter.packetC1B3F(ord('P'), self._label, kp, ki, kd)
+        self._packeter.packetC1B3F(ord('P'), self._label & 0xFF, kp, ki, kd)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
 
     def stop(self):
@@ -449,6 +455,13 @@ class _ArduinoAlvikWheel:
         :return:
         """
         return self._speed
+
+    def get_position(self) -> float:
+        """
+        Returns the wheel position (angle with respect to the reference)
+        :return:
+        """
+        return self._position
 
     def set_position(self, position: float, unit: str = 'deg'):
         """

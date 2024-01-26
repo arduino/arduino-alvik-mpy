@@ -12,7 +12,9 @@ while True:
     try:
         print(f'VER: {alvik.version}')
         print(f'LSP: {alvik.left_wheel.get_speed()}')
-        print(f'RSP: {alvik.left_wheel.get_speed()}')
+        print(f'RSP: {alvik.right_wheel.get_speed()}')
+        print(f'LPOS: {alvik.left_wheel.get_position()}')
+        print(f'RPOS: {alvik.right_wheel.get_position()}')
         print(f'TOUCH: {alvik.touch_bits}')
         print(f'RGB: {alvik.red} {alvik.green} {alvik.blue}')
         print(f'LINE: {alvik.left_line} {alvik.center_line} {alvik.right_line}')
