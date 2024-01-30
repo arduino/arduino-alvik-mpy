@@ -49,6 +49,8 @@ class ArduinoAlvik:
         self.right_tof = None
         self.top_tof = None
         self.bottom_tof = None
+        self.linear_velocity = None
+        self.angular_velocity = None
         self.version = [None, None, None]
 
     def begin(self) -> int:
@@ -174,6 +176,13 @@ class ArduinoAlvik:
         self.packeter.packetC2F(ord('V'), linear_velocity, angular_velocity)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
 
+    def get_drive_speed(self) -> (float, float):
+        """
+        Returns linear and angular velocity of the robot
+        :return: linear_velocity, angular_velocity
+        """
+        return self.linear_velocity, self.angular_velocity
+
     def set_servo_positions(self, a_position: int, b_position: int):
         """
         Sets A/B servomotor angle
@@ -286,9 +295,12 @@ class ArduinoAlvik:
         elif code == ord('q'):
             # imu position
             _, self.roll, self.pitch, self.yaw = self.packeter.unpacketC3F()
-        if code == ord('w'):
+        elif code == ord('w'):
             # wheels position
             _, self.left_wheel._position, self.right_wheel._position = self.packeter.unpacketC2F()
+        elif code == ord('v'):
+            # robot velocity
+            _, self.linear_velocity, self.angular_velocity = self.packeter.unpacketC2F()
         elif code == 0x7E:
             # firmware version
             _, *self.version = self.packeter.unpacketC3B()
