@@ -51,6 +51,7 @@ class ArduinoAlvik:
         self.bottom_tof = None
         self.linear_velocity = None
         self.angular_velocity = None
+        self.last_ack = ''
         self.version = [None, None, None]
 
     def begin(self) -> int:
@@ -85,6 +86,24 @@ class ArduinoAlvik:
         :return:
         """
         cls._update_thread_running = False
+
+    def rotate(self, angle: float):
+        """
+        Rotates the robot by given angle
+        :param angle:
+        :return:
+        """
+        self.packeter.packetC1F(ord('R'), angle)
+        uart.write(self.packeter.msg[0:self.packeter.msg_size])
+
+    def move(self, distance: float):
+        """
+        Moves the robot by given distance
+        :param distance:
+        :return:
+        """
+        self.packeter.packetC1F(ord('G'), distance)
+        uart.write(self.packeter.msg[0:self.packeter.msg_size])
 
     def stop(self):
         """
@@ -192,6 +211,13 @@ class ArduinoAlvik:
         """
         self.packeter.packetC2B(ord('S'), a_position & 0xFF, b_position & 0xFF)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
+
+    def get_ack(self):
+        """
+        Resets and returns last acknowledgement
+        :return:
+        """
+        return self.last_ack
 
     # def send_ack(self):
     #     self.packeter.packetC1B(ord('X'), ACK_)
@@ -301,6 +327,9 @@ class ArduinoAlvik:
         elif code == ord('v'):
             # robot velocity
             _, self.linear_velocity, self.angular_velocity = self.packeter.unpacketC2F()
+        elif code == ord('x'):
+            # robot ack
+            _, self.last_ack = self.packeter.unpacketC1B()
         elif code == 0x7E:
             # firmware version
             _, *self.version = self.packeter.unpacketC3B()

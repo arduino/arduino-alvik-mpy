@@ -7,14 +7,18 @@ alvik.begin()
 
 while True:
     try:
-        alvik.set_wheels_speed(10, 10)
-        sleep_ms(1000)
+        alvik.move(100.0)
+        while (ack := alvik.get_ack()) != ord('M'):
+            print(f'moving... not on target yet ack={ack}')
+            sleep_ms(200)
+        print("on target after move")
 
-        alvik.set_wheels_speed(30, 60)
-        sleep_ms(1000)
+        alvik.rotate(90.0)
+        while (ack := alvik.get_ack()) != ord('R'):
+            print(f'rotating... not on target yet ack={ack}')
+            sleep_ms(200)
+        print("on target after rotation")
 
-        alvik.set_wheels_speed(60, 30)
-        sleep_ms(1000)
     except KeyboardInterrupt as e:
         print('over')
         alvik.stop()
