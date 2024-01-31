@@ -49,6 +49,9 @@ class ArduinoAlvik:
         self.right_tof = None
         self.top_tof = None
         self.bottom_tof = None
+        self.linear_velocity = None
+        self.angular_velocity = None
+        self.last_ack = ''
         self.version = [None, None, None]
 
     def begin(self) -> int:
@@ -83,6 +86,24 @@ class ArduinoAlvik:
         :return:
         """
         cls._update_thread_running = False
+
+    def rotate(self, angle: float):
+        """
+        Rotates the robot by given angle
+        :param angle:
+        :return:
+        """
+        self.packeter.packetC1F(ord('R'), angle)
+        uart.write(self.packeter.msg[0:self.packeter.msg_size])
+
+    def move(self, distance: float):
+        """
+        Moves the robot by given distance
+        :param distance:
+        :return:
+        """
+        self.packeter.packetC1F(ord('G'), distance)
+        uart.write(self.packeter.msg[0:self.packeter.msg_size])
 
     def stop(self):
         """
@@ -174,6 +195,13 @@ class ArduinoAlvik:
         self.packeter.packetC2F(ord('V'), linear_velocity, angular_velocity)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
 
+    def get_drive_speed(self) -> (float, float):
+        """
+        Returns linear and angular velocity of the robot
+        :return: linear_velocity, angular_velocity
+        """
+        return self.linear_velocity, self.angular_velocity
+
     def set_servo_positions(self, a_position: int, b_position: int):
         """
         Sets A/B servomotor angle
@@ -183,6 +211,13 @@ class ArduinoAlvik:
         """
         self.packeter.packetC2B(ord('S'), a_position & 0xFF, b_position & 0xFF)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
+
+    def get_ack(self):
+        """
+        Resets and returns last acknowledgement
+        :return:
+        """
+        return self.last_ack
 
     # def send_ack(self):
     #     self.packeter.packetC1B(ord('X'), ACK_)
@@ -286,9 +321,15 @@ class ArduinoAlvik:
         elif code == ord('q'):
             # imu position
             _, self.roll, self.pitch, self.yaw = self.packeter.unpacketC3F()
-        if code == ord('w'):
+        elif code == ord('w'):
             # wheels position
             _, self.left_wheel._position, self.right_wheel._position = self.packeter.unpacketC2F()
+        elif code == ord('v'):
+            # robot velocity
+            _, self.linear_velocity, self.angular_velocity = self.packeter.unpacketC2F()
+        elif code == ord('x'):
+            # robot ack
+            _, self.last_ack = self.packeter.unpacketC1B()
         elif code == 0x7E:
             # firmware version
             _, *self.version = self.packeter.unpacketC3B()
