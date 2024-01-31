@@ -42,6 +42,12 @@ class ArduinoAlvik:
         self.roll = None
         self.pitch = None
         self.yaw = None
+        self.ax = None
+        self.ay = None
+        self.az = None
+        self.gx = None
+        self.gy = None
+        self.gz = None
         self.left_tof = None
         self.center_left_tof = None
         self.center_tof = None
@@ -163,6 +169,27 @@ class ArduinoAlvik:
         """
 
         return self.roll, self.pitch, self.yaw
+
+    def get_accelerations(self) -> (float, float, float):
+        """
+        Returns the 3-axial acceleration of the IMU
+        :return: ax, ay, az
+        """
+        return self.ax, self.ay, self.az
+
+    def get_gyro(self) -> (float, float, float):
+        """
+        Returns the 3-axial angular acceleration of the IMU
+        :return: gx, gy, gz
+        """
+        return self.gx, self.gy, self.gz
+
+    def get_imu(self) -> (float, float, float, float, float, float):
+        """
+        Returns all the IMUs readouts
+        :return: ax, ay, az, gx, gy, gz
+        """
+        return self.ax, self.ay, self.az, self.gx, self.gy, self.gz
 
     def get_line_sensors(self) -> (int, int, int):
         """
@@ -288,7 +315,7 @@ class ArduinoAlvik:
             _, self.red, self.green, self.blue = self.packeter.unpacketC3I()
         elif code == ord('i'):
             # imu
-            _, ax, ay, az, gx, gy, gz = self.packeter.unpacketC6F()
+            _, self.ax, self.ay, self.az, self.gx, self.gy, self.gz = self.packeter.unpacketC6F()
         elif code == ord('p'):
             # battery percentage
             _, self.battery_perc = self.packeter.unpacketC1F()
