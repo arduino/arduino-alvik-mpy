@@ -156,19 +156,6 @@ class ArduinoAlvik:
         self.packeter.packetC2F(ord('J'), left_speed, right_speed)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
 
-    def set_pid(self, side: str, kp: float, ki: float, kd: float):
-        """
-        Sets motor PID parameters. Side can be 'L' or 'R'
-        :param side:
-        :param kp:
-        :param ki:
-        :param kd:
-        :return:
-        """
-
-        self.packeter.packetC1B3F(ord('P'), ord(side), kp, ki, kd)
-        uart.write(self.packeter.msg[0:self.packeter.msg_size])
-
     def get_orientation(self) -> (float, float, float):
         """
         Returns the orientation of the IMU
