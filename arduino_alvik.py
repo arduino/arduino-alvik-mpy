@@ -42,6 +42,9 @@ class ArduinoAlvik:
         self.roll = None
         self.pitch = None
         self.yaw = None
+        self.x = None
+        self.y = None
+        self.theta = None
         self.ax = None
         self.ay = None
         self.az = None
@@ -227,6 +230,13 @@ class ArduinoAlvik:
         self.packeter.packetC3F(ord('Z'), x, y, theta)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
 
+    def get_pose(self) -> (float, float, float):
+        """
+        Returns the current pose of the robot
+        :return: x, y, theta
+        """
+        return self.x, self.y, self.theta
+
     def set_servo_positions(self, a_position: int, b_position: int):
         """
         Sets A/B servomotor angle
@@ -355,6 +365,9 @@ class ArduinoAlvik:
         elif code == ord('x'):
             # robot ack
             _, self.last_ack = self.packeter.unpacketC1B()
+        elif code == ord('z'):
+            # robot ack
+            _, self.x, self.y, self.theta = self.packeter.unpacketC3F()
         elif code == 0x7E:
             # firmware version
             _, *self.version = self.packeter.unpacketC3B()
