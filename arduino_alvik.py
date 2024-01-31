@@ -216,9 +216,9 @@ class ArduinoAlvik:
         """
         return self.linear_velocity, self.angular_velocity
 
-    def set_pose(self, x: float, y: float, theta: float):
+    def reset_pose(self, x: float, y: float, theta: float):
         """
-        Sets the robot pose
+        Resets the robot pose
         :param x: x coordinate of the robot
         :param y: y coordinate of the robot
         :param theta: angle of the robot
