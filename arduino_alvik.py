@@ -177,7 +177,7 @@ class ArduinoAlvik:
         """
         return self.ax, self.ay, self.az
 
-    def get_gyro(self) -> (float, float, float):
+    def get_gyros(self) -> (float, float, float):
         """
         Returns the 3-axial angular acceleration of the IMU
         :return: gx, gy, gz
