@@ -388,9 +388,9 @@ class ArduinoAlvik:
         """
         return bool(self.touch_bits & 0b10000000)
 
-    def get_color(self) -> (int, int, int):
+    def get_color_raw(self) -> (int, int, int):
         """
-        Returns the RGB color (raw) readout
+        Returns the color sensor's raw readout
         :return: red, green, blue
         """
 
