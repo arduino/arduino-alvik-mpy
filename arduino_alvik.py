@@ -216,6 +216,17 @@ class ArduinoAlvik:
         """
         return self.linear_velocity, self.angular_velocity
 
+    def set_pose(self, x: float, y: float, theta: float):
+        """
+        Sets the robot pose
+        :param x: x coordinate of the robot
+        :param y: y coordinate of the robot
+        :param theta: angle of the robot
+        :return:
+        """
+        self.packeter.packetC3F(ord('Z'), x, y, theta)
+        uart.write(self.packeter.msg[0:self.packeter.msg_size])
+
     def set_servo_positions(self, a_position: int, b_position: int):
         """
         Sets A/B servomotor angle
