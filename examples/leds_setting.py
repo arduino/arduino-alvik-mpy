@@ -7,10 +7,6 @@ alvik.begin()
 
 while True:
     try:
-        alvik._set_leds(0xff)
-        sleep_ms(1000)
-        alvik._set_leds(0x00)
-        sleep_ms(1000)
         alvik.set_builtin_led(1)
         sleep_ms(1000)
         alvik.set_illuminator(1)
