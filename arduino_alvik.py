@@ -1,5 +1,7 @@
 import math
 
+import gc
+
 from uart import uart
 import _thread
 from time import sleep_ms
@@ -74,7 +76,11 @@ class ArduinoAlvik:
         self._begin_update_thread()
         sleep_ms(100)
         self._reset_hw()
+        while uart.any():
+            uart.read(1)
         sleep_ms(1000)
+        while self.last_ack != 0x00:
+            sleep_ms(20)
         self.set_illuminator(True)
         return 0
 
@@ -96,25 +102,45 @@ class ArduinoAlvik:
         """
         cls._update_thread_running = False
 
-    def rotate(self, angle: float):
+    def _wait_for_target(self):
+        while not self.is_target_reached():
+            pass
+
+    def is_target_reached(self) -> bool:
+        if self.last_ack != ord('M') and self.last_ack != ord('R'):
+            sleep_ms(50)
+            return False
+        else:
+            self.packeter.packetC1B(ord('X'), ord('K'))
+            uart.write(self.packeter.msg[0:self.packeter.msg_size])
+            sleep_ms(200)
+            return True
+
+    def rotate(self, angle: float, blocking: bool = True):
         """
         Rotates the robot by given angle
         :param angle:
+        :param blocking:
         :return:
         """
         sleep_ms(200)
         self.packeter.packetC1F(ord('R'), angle)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
+        if blocking:
+            self._wait_for_target()
 
-    def move(self, distance: float):
+    def move(self, distance: float, blocking: bool = True):
         """
         Moves the robot by given distance
         :param distance:
+        :param blocking:
         :return:
         """
         sleep_ms(200)
         self.packeter.packetC1F(ord('G'), distance)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
+        if blocking:
+            self._wait_for_target()
 
     def stop(self):
         """
@@ -129,6 +155,10 @@ class ArduinoAlvik:
 
         # stop the update thrad
         self._stop_update_thread()
+
+        # delete instance
+        del self.__class__.instance
+        gc.collect()
 
     @staticmethod
     def _reset_hw():
