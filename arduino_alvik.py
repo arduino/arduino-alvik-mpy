@@ -102,6 +102,7 @@ class ArduinoAlvik:
         :param angle:
         :return:
         """
+        sleep_ms(200)
         self.packeter.packetC1F(ord('R'), angle)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
 
@@ -111,6 +112,7 @@ class ArduinoAlvik:
         :param distance:
         :return:
         """
+        sleep_ms(200)
         self.packeter.packetC1F(ord('G'), distance)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
 
@@ -229,6 +231,7 @@ class ArduinoAlvik:
         """
         self.packeter.packetC3F(ord('Z'), x, y, theta)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
+        sleep_ms(1000)
 
     def get_pose(self) -> (float, float, float):
         """
