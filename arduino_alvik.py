@@ -1,5 +1,7 @@
 import math
 
+import gc
+
 from uart import uart
 import _thread
 from time import sleep_ms
@@ -42,6 +44,15 @@ class ArduinoAlvik:
         self.roll = None
         self.pitch = None
         self.yaw = None
+        self.x = None
+        self.y = None
+        self.theta = None
+        self.ax = None
+        self.ay = None
+        self.az = None
+        self.gx = None
+        self.gy = None
+        self.gz = None
         self.left_tof = None
         self.center_left_tof = None
         self.center_tof = None
@@ -65,7 +76,11 @@ class ArduinoAlvik:
         self._begin_update_thread()
         sleep_ms(100)
         self._reset_hw()
+        while uart.any():
+            uart.read(1)
         sleep_ms(1000)
+        while self.last_ack != 0x00:
+            sleep_ms(20)
         self.set_illuminator(True)
         return 0
 
@@ -87,23 +102,45 @@ class ArduinoAlvik:
         """
         cls._update_thread_running = False
 
-    def rotate(self, angle: float):
+    def _wait_for_target(self):
+        while not self.is_target_reached():
+            pass
+
+    def is_target_reached(self) -> bool:
+        if self.last_ack != ord('M') and self.last_ack != ord('R'):
+            sleep_ms(50)
+            return False
+        else:
+            self.packeter.packetC1B(ord('X'), ord('K'))
+            uart.write(self.packeter.msg[0:self.packeter.msg_size])
+            sleep_ms(200)
+            return True
+
+    def rotate(self, angle: float, blocking: bool = True):
         """
         Rotates the robot by given angle
         :param angle:
+        :param blocking:
         :return:
         """
+        sleep_ms(200)
         self.packeter.packetC1F(ord('R'), angle)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
+        if blocking:
+            self._wait_for_target()
 
-    def move(self, distance: float):
+    def move(self, distance: float, blocking: bool = True):
         """
         Moves the robot by given distance
         :param distance:
+        :param blocking:
         :return:
         """
+        sleep_ms(200)
         self.packeter.packetC1F(ord('G'), distance)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
+        if blocking:
+            self._wait_for_target()
 
     def stop(self):
         """
@@ -118,6 +155,10 @@ class ArduinoAlvik:
 
         # stop the update thrad
         self._stop_update_thread()
+
+        # delete instance
+        del self.__class__.instance
+        gc.collect()
 
     @staticmethod
     def _reset_hw():
@@ -156,19 +197,6 @@ class ArduinoAlvik:
         self.packeter.packetC2F(ord('J'), left_speed, right_speed)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
 
-    def set_pid(self, side: str, kp: float, ki: float, kd: float):
-        """
-        Sets motor PID parameters. Side can be 'L' or 'R'
-        :param side:
-        :param kp:
-        :param ki:
-        :param kd:
-        :return:
-        """
-
-        self.packeter.packetC1B3F(ord('P'), ord(side), kp, ki, kd)
-        uart.write(self.packeter.msg[0:self.packeter.msg_size])
-
     def get_orientation(self) -> (float, float, float):
         """
         Returns the orientation of the IMU
@@ -176,6 +204,27 @@ class ArduinoAlvik:
         """
 
         return self.roll, self.pitch, self.yaw
+
+    def get_accelerations(self) -> (float, float, float):
+        """
+        Returns the 3-axial acceleration of the IMU
+        :return: ax, ay, az
+        """
+        return self.ax, self.ay, self.az
+
+    def get_gyros(self) -> (float, float, float):
+        """
+        Returns the 3-axial angular acceleration of the IMU
+        :return: gx, gy, gz
+        """
+        return self.gx, self.gy, self.gz
+
+    def get_imu(self) -> (float, float, float, float, float, float):
+        """
+        Returns all the IMUs readouts
+        :return: ax, ay, az, gx, gy, gz
+        """
+        return self.ax, self.ay, self.az, self.gx, self.gy, self.gz
 
     def get_line_sensors(self) -> (int, int, int):
         """
@@ -201,6 +250,25 @@ class ArduinoAlvik:
         :return: linear_velocity, angular_velocity
         """
         return self.linear_velocity, self.angular_velocity
+
+    def reset_pose(self, x: float, y: float, theta: float):
+        """
+        Resets the robot pose
+        :param x: x coordinate of the robot
+        :param y: y coordinate of the robot
+        :param theta: angle of the robot
+        :return:
+        """
+        self.packeter.packetC3F(ord('Z'), x, y, theta)
+        uart.write(self.packeter.msg[0:self.packeter.msg_size])
+        sleep_ms(1000)
+
+    def get_pose(self) -> (float, float, float):
+        """
+        Returns the current pose of the robot
+        :return: x, y, theta
+        """
+        return self.x, self.y, self.theta
 
     def set_servo_positions(self, a_position: int, b_position: int):
         """
@@ -301,7 +369,7 @@ class ArduinoAlvik:
             _, self.red, self.green, self.blue = self.packeter.unpacketC3I()
         elif code == ord('i'):
             # imu
-            _, ax, ay, az, gx, gy, gz = self.packeter.unpacketC6F()
+            _, self.ax, self.ay, self.az, self.gx, self.gy, self.gz = self.packeter.unpacketC6F()
         elif code == ord('p'):
             # battery percentage
             _, self.battery_perc = self.packeter.unpacketC1F()
@@ -330,6 +398,9 @@ class ArduinoAlvik:
         elif code == ord('x'):
             # robot ack
             _, self.last_ack = self.packeter.unpacketC1B()
+        elif code == ord('z'):
+            # robot ack
+            _, self.x, self.y, self.theta = self.packeter.unpacketC3F()
         elif code == 0x7E:
             # firmware version
             _, *self.version = self.packeter.unpacketC3B()
@@ -401,9 +472,9 @@ class ArduinoAlvik:
         """
         return bool(self.touch_bits & 0b10000000)
 
-    def get_color(self) -> (int, int, int):
+    def get_color_raw(self) -> (int, int, int):
         """
-        Returns the RGB color (raw) readout
+        Returns the color sensor's raw readout
         :return: red, green, blue
         """
 
