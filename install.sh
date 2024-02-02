@@ -45,11 +45,13 @@ fi
 $python_command -m mpremote $connect_string fs rm :arduino_alvik.py
 $python_command -m mpremote $connect_string fs rm :constants.py
 $python_command -m mpremote $connect_string fs rm :pinout_definitions.py
+$python_command -m mpremote $connect_string fs rm :robot_definitions.py
 $python_command -m mpremote $connect_string fs rm :uart.py
 
 $python_command -m mpremote $connect_string fs cp arduino_alvik.py :arduino_alvik.py
 $python_command -m mpremote $connect_string fs cp constants.py :constants.py
 $python_command -m mpremote $connect_string fs cp pinout_definitions.py :pinout_definitions.py
+$python_command -m mpremote $connect_string fs cp robot_definitions.py :robot_definitions.py
 $python_command -m mpremote $connect_string fs cp uart.py :uart.py
 
 echo "Installing dependencies"
