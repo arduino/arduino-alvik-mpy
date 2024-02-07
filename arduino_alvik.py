@@ -8,6 +8,7 @@ from time import sleep_ms
 
 from ucPack import ucPack
 
+from conversions import *
 from pinout_definitions import *
 from robot_definitions import *
 from constants import *
@@ -116,26 +117,30 @@ class ArduinoAlvik:
             sleep_ms(200)
             return True
 
-    def rotate(self, angle: float, blocking: bool = True):
+    def rotate(self, angle: float, blocking: bool = True, unit: str = 'deg'):
         """
         Rotates the robot by given angle
         :param angle:
         :param blocking:
+        :param unit: the angle unit
         :return:
         """
+        angle = convert_angle(angle, unit, 'deg')
         sleep_ms(200)
         self.packeter.packetC1F(ord('R'), angle)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
         if blocking:
             self._wait_for_target()
 
-    def move(self, distance: float, blocking: bool = True):
+    def move(self, distance: float, blocking: bool = True, unit: str = 'cm'):
         """
         Moves the robot by given distance
         :param distance:
         :param blocking:
+        :param unit: the distance unit
         :return:
         """
+        distance = convert_distance(distance, unit, 'mm')
         sleep_ms(200)
         self.packeter.packetC1F(ord('G'), distance)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
@@ -187,14 +192,8 @@ class ArduinoAlvik:
         :param unit: the speed unit of measurement (default: 'rpm')
         :return:
         """
-
-        if unit not in angular_velocity_units:
-            return
-        elif unit == '%':
-            left_speed = perc_to_rpm(left_speed)
-            right_speed = perc_to_rpm(right_speed)
-
-        self.packeter.packetC2F(ord('J'), left_speed, right_speed)
+        self.packeter.packetC2F(ord('J'), convert_rotational_speed(left_speed, unit, 'rpm'),
+                                convert_rotational_speed(right_speed, unit, 'rpm'))
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
 
     def get_orientation(self) -> (float, float, float):
@@ -234,13 +233,18 @@ class ArduinoAlvik:
 
         return self.left_line, self.center_line, self.right_line
 
-    def drive(self, linear_velocity: float, angular_velocity: float):
+    def drive(self, linear_velocity: float, angular_velocity: float, linear_unit: str = 'cm/s',
+              angular_unit: str = 'deg/s'):
         """
         Drives the robot by linear and angular velocity
         :param linear_velocity:
         :param angular_velocity:
+        :param linear_unit:
+        :param angular_unit:
         :return:
         """
+        convert_speed(linear_velocity, linear_unit, 'mm/s')
+        convert_rotational_speed(angular_velocity, angular_unit, 'deg/s')
         self.packeter.packetC2F(ord('V'), linear_velocity, angular_velocity)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
 
@@ -263,12 +267,16 @@ class ArduinoAlvik:
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
         sleep_ms(1000)
 
-    def get_pose(self) -> (float, float, float):
+    def get_pose(self, distance_unit: str = 'cm', angle_unit: str = 'deg') -> (float, float, float):
         """
         Returns the current pose of the robot
+        :param distance_unit: unit of x and y outputs
+        :param angle_unit: unit of theta output
         :return: x, y, theta
         """
-        return self.x, self.y, self.theta
+        return (convert_distance(self.x, 'mm', distance_unit),
+                convert_distance(self.y, 'mm', distance_unit),
+                convert_angle(self.theta, 'deg', angle_unit))
 
     def set_servo_positions(self, a_position: int, b_position: int):
         """
@@ -483,12 +491,17 @@ class ArduinoAlvik:
         #         int((self.green/COLOR_FULL_SCALE)*255),
         #         int((self.blue/COLOR_FULL_SCALE)*255))
 
-    def get_distance(self) -> (int, int, int, int, int, int):
+    def get_distance(self, unit: str = 'cm') -> (int, int, int, int, int, int):
         """
         Returns the distance readout of the TOF sensor
+        :param unit: distance output unit
         :return: left_tof, center_left_tof, center_tof, center_right_tof, right_tof
         """
-        return self.left_tof, self.center_left_tof, self.center_tof, self.center_right_tof, self.right_tof
+        return (convert_distance(self.left_tof, 'mm', unit),
+                convert_distance(self.center_left_tof, 'mm', unit),
+                convert_distance(self.center_tof, 'mm', unit),
+                convert_distance(self.center_right_tof, 'mm', unit),
+                convert_distance(self.right_tof, 'mm', unit))
 
     def get_version(self) -> str:
         """
@@ -552,28 +565,25 @@ class _ArduinoAlvikWheel:
         :param unit: the unit of measurement
         :return:
         """
-
-        if unit not in angular_velocity_units:
-            return
-        elif unit == '%':
-            velocity = perc_to_rpm(velocity)
-
-        self._packeter.packetC2B1F(ord('W'), self._label & 0xFF, ord('V'), velocity)
+        self._packeter.packetC2B1F(ord('W'), self._label & 0xFF, ord('V'),
+                                   convert_rotational_speed(velocity, unit, 'rpm'))
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
 
-    def get_speed(self) -> float:
+    def get_speed(self, unit: str = 'rpm') -> float:
         """
         Returns the current RPM speed of the wheel
+        :param unit: the unit of the output speed
         :return:
         """
-        return self._speed
+        return convert_rotational_speed(self._speed, 'rpm', unit)
 
-    def get_position(self) -> float:
+    def get_position(self, unit: str = 'deg') -> float:
         """
         Returns the wheel position (angle with respect to the reference)
+        :param unit: the unit of the output position
         :return:
         """
-        return self._position
+        return convert_angle(self._position, 'deg', unit)
 
     def set_position(self, position: float, unit: str = 'deg'):
         """
@@ -582,13 +592,8 @@ class _ArduinoAlvikWheel:
         :param unit: the unit of measurement
         :return:
         """
-
-        if unit not in angle_units:
-            return
-        elif unit == 'rad':
-            position = rad_to_deg(position)
-
-        self._packeter.packetC2B1F(ord('W'), self._label & 0xFF, ord('P'), position)
+        self._packeter.packetC2B1F(ord('W'), self._label & 0xFF, ord('P'),
+                                   convert_angle(position, unit, 'deg'))
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
 
 
@@ -616,28 +621,3 @@ class _ArduinoAlvikRgbLed:
         self._led_state[0] = led_status
         self._packeter.packetC1B(ord('L'), led_status & 0xFF)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
-
-
-# Units and unit conversion methods
-
-angular_velocity_units = ['rpm', '%']
-angle_units = ['deg', 'rad']
-distance_units = ['mm', 'cm']
-
-
-def perc_to_rpm(percent: float) -> float:
-    """
-    Converts percent of max_rpm to rpm
-    :param percent:
-    :return:
-    """
-    return (percent / 100.0)*MOTOR_MAX_RPM
-
-
-def rad_to_deg(rad: float) -> float:
-    """
-    Converts radians to degrees
-    :param rad:
-    :return:
-    """
-    return rad*180/math.pi
