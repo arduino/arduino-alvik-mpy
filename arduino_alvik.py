@@ -117,6 +117,15 @@ class ArduinoAlvik:
             sleep_ms(200)
             return True
 
+    def set_behaviour(self, behaviour: int):
+        """
+        Sets the behaviour of Alvik
+        :param behaviour: behaviour code
+        :return:
+        """
+        self.packeter.packetC1B(ord('B'), behaviour & 0xFF)
+        uart.write(self.packeter.msg[0:self.packeter.msg_size])
+
     def rotate(self, angle: float, blocking: bool = True, unit: str = 'deg'):
         """
         Rotates the robot by given angle
