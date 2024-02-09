@@ -186,12 +186,13 @@ class ArduinoAlvik:
         RESET_STM32.value(1)
         sleep_ms(100)
 
-    def get_wheels_speed(self) -> (float, float):
+    def get_wheels_speed(self, unit: str = 'rpm') -> (float, float):
         """
         Returns the speed of the wheels
         :return: left_wheel_speed, right_wheel_speed
         """
-        return self.left_wheel.get_speed(), self.right_wheel.get_speed()
+        return (convert_rotational_speed(self.left_wheel.get_speed(), 'rpm', unit),
+                convert_rotational_speed(self.right_wheel.get_speed(), 'rpm', unit))
 
     def set_wheels_speed(self, left_speed: float, right_speed: float, unit: str = 'rpm'):
         """
@@ -204,6 +205,26 @@ class ArduinoAlvik:
         self.packeter.packetC2F(ord('J'), convert_rotational_speed(left_speed, unit, 'rpm'),
                                 convert_rotational_speed(right_speed, unit, 'rpm'))
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
+
+    def set_wheels_position(self, left_angle: float, right_angle: float, unit: str = 'deg'):
+        """
+        Sets left/right motor angle
+        :param left_angle:
+        :param right_angle:
+        :param unit: the speed unit of measurement (default: 'rpm')
+        :return:
+        """
+        self.packeter.packetC2F(ord('A'), convert_angle(left_angle, unit, 'deg'),
+                                convert_angle(right_angle, unit, 'deg'))
+        uart.write(self.packeter.msg[0:self.packeter.msg_size])
+
+    def get_wheels_position(self, unit: str = 'deg') -> (float, float):
+        """
+        Returns the angle of the wheels
+        :return: left_wheel_angle, right_wheel_angle
+        """
+        return (convert_angle(self.left_wheel.get_position(), 'deg', unit),
+                convert_angle(self.right_wheel.get_position(), 'deg', unit))
 
     def get_orientation(self) -> (float, float, float):
         """
