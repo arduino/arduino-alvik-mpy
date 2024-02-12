@@ -142,7 +142,7 @@ class ArduinoAlvik:
         if blocking:
             self._wait_for_target()
 
-    def move(self, distance: float, blocking: bool = True, unit: str = 'cm'):
+    def move(self, distance: float, unit: str = 'cm', blocking: bool = True):
         """
         Moves the robot by given distance
         :param distance:
@@ -289,14 +289,19 @@ class ArduinoAlvik:
         return (convert_speed(self.linear_velocity, 'mm/s', linear_unit),
                 convert_rotational_speed(self.angular_velocity, 'deg/s', angular_unit))
 
-    def reset_pose(self, x: float, y: float, theta: float):
+    def reset_pose(self, x: float, y: float, theta: float, distance_unit: str = 'cm', angle_unit: str = 'deg'):
         """
         Resets the robot pose
         :param x: x coordinate of the robot
         :param y: y coordinate of the robot
         :param theta: angle of the robot
+        :param distance_unit: angle of the robot
+        :param angle_unit: angle of the robot
         :return:
         """
+        x = convert_distance(x, distance_unit, 'mm')
+        y = convert_distance(y, distance_unit, 'mm')
+        theta = convert_angle(theta, angle_unit, 'deg')
         self.packeter.packetC3F(ord('Z'), x, y, theta)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
         sleep_ms(1000)
@@ -563,12 +568,14 @@ class _ArduinoAlvikWheel:
         self._speed = None
         self._position = None
 
-    def reset(self, initial_position: float = 0.0):
+    def reset(self, initial_position: float = 0.0, unit: str = 'deg'):
         """
         Resets the wheel reference position
         :param initial_position:
+        :param unit: reference position unit (defaults to deg)
         :return:
         """
+        initial_position = convert_angle(initial_position, unit, 'deg')
         self._packeter.packetC2B1F(ord('W'), self._label & 0xFF, ord('Z'), initial_position)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
 

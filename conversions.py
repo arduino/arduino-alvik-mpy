@@ -2,6 +2,8 @@
 
 from math import pi
 
+from robot_definitions import MOTOR_MAX_RPM
+
 
 def conversion_method(func):
     def wrapper(*args, **kwargs):
@@ -21,7 +23,7 @@ def convert_rotational_speed(value: float, from_unit: str, to_unit: str) -> floa
     :param to_unit: unit of output value
     :return:
     """
-    speeds = {'rpm': 1.0, 'deg/s': 1/6, 'rad/s': 60/(2*pi)}
+    speeds = {'rpm': 1.0, 'deg/s': 1/6, 'rad/s': 60/(2*pi), '%': MOTOR_MAX_RPM/100, 'rev/s': 60}
     return value * speeds[from_unit.lower()] / speeds[to_unit.lower()]
 
 
