@@ -26,6 +26,12 @@ while True:
         alvik.move(1, unit='in')
         sleep_ms(2000)
 
+        print(f"Current position: {alvik.get_pose()}")
+        alvik.reset_pose(0, 0, theta=3.1415, angle_unit='rad')
+        sleep_ms(2000)
+
+        print(f"Current position: {alvik.get_pose()}")
+
         # -- WHEEL ROTATIONS --
         alvik.right_wheel.reset()
         sleep_ms(2000)
@@ -73,7 +79,6 @@ while True:
         sleep_ms(1000)
         print(f"Current speed is {alvik.get_wheels_speed()} rpm")
 
-
         # -- DRIVE --
         print("Driving at 10 mm/s (expecting approx 5.6 rpm)")
         alvik.drive(10, 0, linear_unit='mm/s')
@@ -93,7 +98,12 @@ while True:
         print("Driving at 5 mm/s (expecting approx 5.6 rpm) pi/8 rad/s (22.5 deg/s)")
         alvik.drive(5, 3.1415/8, linear_unit='mm/s', angular_unit='rad/s')
         sleep_ms(2000)
-        print(f"Current speed is {alvik.get_drive_speed()} rpm")
+        print(f"Current speed is {alvik.get_drive_speed()} (mm/s) (rpm)")
+
+        print("Driving at 5 mm/s (expecting approx 5.6 rpm) 1/8 rev/s (45 deg/s)")
+        alvik.drive(5, 1/8, linear_unit='mm/s', angular_unit='rev/s')
+        sleep_ms(2000)
+        print(f"Current speed is {alvik.get_drive_speed()} (mm/s) (rpm)")
 
         alvik.stop()
         sys.exit()
