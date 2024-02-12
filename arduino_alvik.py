@@ -270,8 +270,8 @@ class ArduinoAlvik:
         Drives the robot by linear and angular velocity
         :param linear_velocity:
         :param angular_velocity:
-        :param linear_unit:
-        :param angular_unit:
+        :param linear_unit: output linear velocity unit of meas
+        :param angular_unit: output angular velocity unit of meas
         :return:
         """
         linear_velocity = convert_speed(linear_velocity, linear_unit, 'mm/s')
@@ -279,12 +279,15 @@ class ArduinoAlvik:
         self.packeter.packetC2F(ord('V'), linear_velocity, angular_velocity)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
 
-    def get_drive_speed(self) -> (float, float):
+    def get_drive_speed(self, linear_unit: str = 'mm/s', angular_unit: str = 'deg/s') -> (float, float):
         """
         Returns linear and angular velocity of the robot
+        :param linear_unit: output linear velocity unit of meas
+        :param angular_unit: output angular velocity unit of meas
         :return: linear_velocity, angular_velocity
         """
-        return self.linear_velocity, self.angular_velocity
+        return (convert_speed(self.linear_velocity, 'mm/s', linear_unit),
+                convert_rotational_speed(self.angular_velocity, 'deg/s', angular_unit))
 
     def reset_pose(self, x: float, y: float, theta: float):
         """
@@ -312,8 +315,8 @@ class ArduinoAlvik:
     def set_servo_positions(self, a_position: int, b_position: int):
         """
         Sets A/B servomotor angle
-        :param a_position: position of A servomotor
-        :param b_position: position of B servomotor
+        :param a_position: position of A servomotor (0-180°)
+        :param b_position: position of B servomotor (0-180°)
         :return:
         """
         self.packeter.packetC2B(ord('S'), a_position & 0xFF, b_position & 0xFF)

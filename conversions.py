@@ -13,7 +13,7 @@ def conversion_method(func):
 
 
 @conversion_method
-def convert_rotational_speed(value: float, from_unit: str, to_unit: str):
+def convert_rotational_speed(value: float, from_unit: str, to_unit: str) -> float:
     """
     Converts a rotational speed value from one unit to another
     :param value:
@@ -26,7 +26,7 @@ def convert_rotational_speed(value: float, from_unit: str, to_unit: str):
 
 
 @conversion_method
-def convert_angle(value: float, from_unit: str, to_unit: str):
+def convert_angle(value: float, from_unit: str, to_unit: str) -> float:
     """
     Converts an angle value from one unit to another
     :param value:
@@ -39,7 +39,7 @@ def convert_angle(value: float, from_unit: str, to_unit: str):
 
 
 @conversion_method
-def convert_distance(value: float, from_unit: str, to_unit: str):
+def convert_distance(value: float, from_unit: str, to_unit: str) -> float:
     """
     Converts a distance value from one unit to another
     :param value:
@@ -52,7 +52,7 @@ def convert_distance(value: float, from_unit: str, to_unit: str):
 
 
 @conversion_method
-def convert_speed(value: float, from_unit: str, to_unit: str):
+def convert_speed(value: float, from_unit: str, to_unit: str) -> float:
     """
     Converts a distance value from one unit to another
     :param value:
@@ -66,15 +66,3 @@ def convert_speed(value: float, from_unit: str, to_unit: str):
 
 class ConversionError(Exception):
     pass
-
-
-if __name__ == '__main__':
-    print(convert_rotational_speed(1, 'rpm', 'deg/s'))
-    print(convert_rotational_speed(1, 'deg/s', 'rpm'))
-    print(convert_angle(360, 'deg', 'rad'))
-    print(convert_angle(pi, 'rad', '%'))
-    print(convert_angle(0.25, 'rev', 'deg'))
-    print(convert_angle(0.25, 'REV', 'perc'))
-    print(convert_distance(10, 'mm', 'cm'))
-    print(convert_distance(1, 'in', 'mm'))
-    print(convert_rotational_speed(1, 'km/h', 'rpm'))
