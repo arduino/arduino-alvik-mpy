@@ -82,6 +82,7 @@ class ArduinoAlvik:
         sleep_ms(1000)
         while self.last_ack != 0x00:
             sleep_ms(20)
+        sleep_ms(2000)
         self.set_illuminator(True)
         return 0
 
@@ -367,7 +368,7 @@ class ArduinoAlvik:
         Updates the robot status reading/parsing messages from UART.
         This method is blocking and meant as a thread callback
         Use the method stop to terminate _update and exit the thread
-        :param delay_: while loop delay
+        :param delay_: while loop delay (ms)
         :return:
         """
         while True:
@@ -385,8 +386,7 @@ class ArduinoAlvik:
         while uart.any():
             b = uart.read(1)[0]
             self.packeter.buffer.push(b)
-            if b == self.packeter.end_index:
-                self.packeter.checkPayload()
+            if b == self.packeter.end_index and self.packeter.checkPayload():
                 return True
         return False
 
