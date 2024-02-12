@@ -395,7 +395,7 @@ class ArduinoAlvik:
         Parse a received message
         :return: -1 if parse error 0 if ok
         """
-        code = self.packeter.payload[0]
+        code = self.packeter.payloadTop()
         if code == ord('j'):
             # joint speed
             _, self.left_wheel._speed, self.right_wheel._speed = self.packeter.unpacketC2F()
