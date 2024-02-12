@@ -273,8 +273,8 @@ class ArduinoAlvik:
         :param angular_unit:
         :return:
         """
-        convert_speed(linear_velocity, linear_unit, 'mm/s')
-        convert_rotational_speed(angular_velocity, angular_unit, 'deg/s')
+        linear_velocity = convert_speed(linear_velocity, linear_unit, 'mm/s')
+        angular_velocity = convert_rotational_speed(angular_velocity, angular_unit, 'deg/s')
         self.packeter.packetC2F(ord('V'), linear_velocity, angular_velocity)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
 
