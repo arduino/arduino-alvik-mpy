@@ -128,7 +128,7 @@ class ArduinoAlvik:
         self.packeter.packetC1B(ord('B'), behaviour & 0xFF)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
 
-    def rotate(self, angle: float, blocking: bool = True, unit: str = 'deg'):
+    def rotate(self, angle: float, unit: str = 'deg', blocking: bool = True):
         """
         Rotates the robot by given angle
         :param angle:
