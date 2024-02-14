@@ -529,7 +529,7 @@ class ArduinoAlvik:
         #         int((self.green/COLOR_FULL_SCALE)*255),
         #         int((self.blue/COLOR_FULL_SCALE)*255))
 
-    def get_distance(self, unit: str = 'cm') -> (int, int, int, int, int, int):
+    def get_distance(self, unit: str = 'cm') -> (int, int, int, int, int):
         """
         Returns the distance readout of the TOF sensor
         :param unit: distance output unit
