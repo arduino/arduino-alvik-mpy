@@ -1,5 +1,3 @@
-import math
-
 import gc
 
 from uart import uart
@@ -193,8 +191,7 @@ class ArduinoAlvik:
         Returns the speed of the wheels
         :return: left_wheel_speed, right_wheel_speed
         """
-        return (convert_rotational_speed(self.left_wheel.get_speed(), 'rpm', unit),
-                convert_rotational_speed(self.right_wheel.get_speed(), 'rpm', unit))
+        return self.left_wheel.get_speed(unit), self.right_wheel.get_speed(unit)
 
     def set_wheels_speed(self, left_speed: float, right_speed: float, unit: str = 'rpm'):
         """
@@ -204,8 +201,15 @@ class ArduinoAlvik:
         :param unit: the speed unit of measurement (default: 'rpm')
         :return:
         """
-        self.packeter.packetC2F(ord('J'), convert_rotational_speed(left_speed, unit, 'rpm'),
-                                convert_rotational_speed(right_speed, unit, 'rpm'))
+
+        if unit == '%':
+            left_speed = (left_speed/100)*MOTOR_MAX_RPM
+            right_speed = (right_speed/100)*MOTOR_MAX_RPM
+        else:
+            left_speed = convert_rotational_speed(left_speed, unit, 'rpm')
+            right_speed = convert_rotational_speed(right_speed, unit, 'rpm')
+
+        self.packeter.packetC2F(ord('J'), left_speed, right_speed)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
 
     def set_wheels_position(self, left_angle: float, right_angle: float, unit: str = 'deg'):
@@ -276,7 +280,10 @@ class ArduinoAlvik:
         :return:
         """
         linear_velocity = convert_speed(linear_velocity, linear_unit, 'mm/s')
-        angular_velocity = convert_rotational_speed(angular_velocity, angular_unit, 'deg/s')
+        if angular_unit == '%':
+            angular_velocity = (angular_velocity/100)*ROBOT_MAX_DEG_S
+        else:
+            angular_velocity = convert_rotational_speed(angular_velocity, angular_unit, 'deg/s')
         self.packeter.packetC2F(ord('V'), linear_velocity, angular_velocity)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
 
@@ -287,8 +294,12 @@ class ArduinoAlvik:
         :param angular_unit: output angular velocity unit of meas
         :return: linear_velocity, angular_velocity
         """
-        return (convert_speed(self.linear_velocity, 'mm/s', linear_unit),
-                convert_rotational_speed(self.angular_velocity, 'deg/s', angular_unit))
+        if angular_unit == '%':
+            angular_velocity = (self.angular_velocity/ROBOT_MAX_DEG_S)*100
+        else:
+            angular_velocity = convert_rotational_speed(self.angular_velocity, 'deg/s', angular_unit)
+
+        return convert_speed(self.linear_velocity, 'mm/s', linear_unit), angular_velocity
 
     def reset_pose(self, x: float, y: float, theta: float, distance_unit: str = 'cm', angle_unit: str = 'deg'):
         """
@@ -606,8 +617,13 @@ class _ArduinoAlvikWheel:
         :param unit: the unit of measurement
         :return:
         """
-        self._packeter.packetC2B1F(ord('W'), self._label & 0xFF, ord('V'),
-                                   convert_rotational_speed(velocity, unit, 'rpm'))
+
+        if unit == '%':
+            velocity = (velocity/100)*MOTOR_MAX_RPM
+        else:
+            velocity = convert_rotational_speed(velocity, unit, 'rpm')
+
+        self._packeter.packetC2B1F(ord('W'), self._label & 0xFF, ord('V'), velocity)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
 
     def get_speed(self, unit: str = 'rpm') -> float:
@@ -616,7 +632,11 @@ class _ArduinoAlvikWheel:
         :param unit: the unit of the output speed
         :return:
         """
-        return convert_rotational_speed(self._speed, 'rpm', unit)
+        if unit == '%':
+            speed = (self._speed/MOTOR_MAX_RPM)*100
+        else:
+            speed = convert_rotational_speed(self._speed, 'rpm', unit)
+        return speed
 
     def get_position(self, unit: str = 'deg') -> float:
         """

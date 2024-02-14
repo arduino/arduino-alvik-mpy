@@ -64,6 +64,11 @@ while True:
         print(f'R wheel pos: {curr_pos}')
 
         # -- WHEELS SPEED --
+        print("Set speed 50% max_rpm (35.0 rpm)")
+        alvik.set_wheels_speed(50, 50, '%')
+        sleep_ms(1000)
+        print(f"Current speed is {alvik.get_wheels_speed()} rpm")
+
         print("Set speed 12 rpm (1 rev in 5 sec)")
         alvik.set_wheels_speed(12, 12, 'rpm')
         sleep_ms(1000)
@@ -80,6 +85,11 @@ while True:
         print(f"Current speed is {alvik.get_wheels_speed()} rpm")
 
         # -- DRIVE --
+        print("Driving at 10 mm/s (expecting approx 5.6 rpm 64 deg/s)")
+        alvik.drive(10, 20, linear_unit='mm/s', angular_unit='%')
+        sleep_ms(2000)
+        print(f"Current speed is {alvik.get_drive_speed()} (mm/s, deg/s))")
+
         print("Driving at 10 mm/s (expecting approx 5.6 rpm)")
         alvik.drive(10, 0, linear_unit='mm/s')
         sleep_ms(2000)
