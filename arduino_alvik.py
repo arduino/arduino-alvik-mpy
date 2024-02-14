@@ -37,6 +37,8 @@ class ArduinoAlvik:
         self.red = None
         self.green = None
         self.blue = None
+        self._white_cal = None
+        self._black_cal = None
         self.left_line = None
         self.center_line = None
         self.right_line = None
@@ -83,6 +85,7 @@ class ArduinoAlvik:
         sleep_ms(2000)
         self.set_illuminator(True)
         self.set_behaviour(1)
+        self._set_color_reference()
         return 0
 
     def _begin_update_thread(self):
@@ -529,6 +532,71 @@ class ArduinoAlvik:
         :return:
         """
         return bool(self.touch_bits & 0b10000000)
+
+    def _set_color_reference(self):
+        try:
+            from color_calibration import BLACK_CAL as _B
+        except ImportError:
+            _B = BLACK_CAL
+        try:
+            from color_calibration import WHITE_CAL as _W
+        except ImportError:
+            _W = WHITE_CAL
+
+        self._black_cal = _B
+        self._white_cal = _W
+
+    def color_calibration(self, background: str = 'white') -> None:
+        """
+        Calibrates the color sensor
+        :param background: str white or black
+        :return:
+        """
+        if background not in ['black', 'white']:
+            return
+
+        red_avg = green_avg = blue_avg = 0
+
+        for _ in range(0, 100):
+            red, green, blue = self.get_color_raw()
+            red_avg += red
+            green_avg += green
+            blue_avg += blue
+            sleep_ms(10)
+
+        red_avg = int(red_avg/100)
+        green_avg = int(green_avg/100)
+        blue_avg = int(blue_avg/100)
+
+        if background == 'white':
+            self._white_cal = [red_avg, green_avg, blue_avg]
+        elif background == 'black':
+            self._black_cal = [red_avg, green_avg, blue_avg]
+
+        file_path = './color_calibration.py'
+
+        try:
+            with open(file_path, 'r') as file:
+                content = file.read().split('\n')
+                lines = [l + '\n' for l in content if l]
+        except OSError:
+            open(file_path, 'a').close()
+            lines = []
+
+        found_param_line = False
+
+        for i, line in enumerate(lines):
+            if line.startswith(background.upper()):
+                lines[i] = f'{background.upper()}_CAL = [{red_avg}, {green_avg}, {blue_avg}]\n'
+                found_param_line = True
+                break
+
+        if not found_param_line:
+            lines.extend([f'{background.upper()}_CAL = [{red_avg}, {green_avg}, {blue_avg}]\n'])
+
+        with open(file_path, 'w') as file:
+            for line in lines:
+                file.write(line)
 
     def get_color_raw(self) -> (int, int, int):
         """
