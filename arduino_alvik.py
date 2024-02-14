@@ -443,7 +443,7 @@ class ArduinoAlvik:
         elif code == ord('f'):
             # tof matrix
             (_, self.left_tof, self.center_left_tof, self.center_tof,
-             self.center_right_tof, self.right_tof, self.bottom_tof, self.top_tof) = self.packeter.unpacketC7I()
+             self.center_right_tof, self.right_tof, self.top_tof, self.bottom_tof) = self.packeter.unpacketC7I()
         elif code == ord('q'):
             # imu position
             _, self.roll, self.pitch, self.yaw = self.packeter.unpacketC3F()
