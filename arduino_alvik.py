@@ -541,7 +541,7 @@ class ArduinoAlvik:
         #         int((self.green/COLOR_FULL_SCALE)*255),
         #         int((self.blue/COLOR_FULL_SCALE)*255))
 
-    def get_distance(self, unit: str = 'cm') -> (int, int, int, int, int):
+    def get_distance(self, unit: str = 'cm') -> (float, float, float, float, float):
         """
         Returns the distance readout of the TOF sensor
         :param unit: distance output unit
@@ -552,6 +552,22 @@ class ArduinoAlvik:
                 convert_distance(self.center_tof, 'mm', unit),
                 convert_distance(self.center_right_tof, 'mm', unit),
                 convert_distance(self.right_tof, 'mm', unit))
+
+    def get_distance_top(self, unit: str = 'cm') -> float:
+        """
+        Returns the obstacle top distance readout
+        :param unit:
+        :return:
+        """
+        return convert_distance(self.top_tof, 'mm', unit)
+
+    def get_distance_bottom(self, unit: str = 'cm') -> float:
+        """
+        Returns the obstacle bottom distance readout
+        :param unit:
+        :return:
+        """
+        return convert_distance(self.bottom_tof, 'mm', unit)
 
     def get_version(self) -> str:
         """
