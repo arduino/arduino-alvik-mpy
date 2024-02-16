@@ -290,6 +290,13 @@ class ArduinoAlvik:
         self.packeter.packetC2F(ord('V'), linear_velocity, angular_velocity)
         uart.write(self.packeter.msg[0:self.packeter.msg_size])
 
+    def brake(self):
+        """
+        Brakes the robot
+        :return:
+        """
+        self.drive(0, 0)
+
     def get_drive_speed(self, linear_unit: str = 'mm/s', angular_unit: str = 'deg/s') -> (float, float):
         """
         Returns linear and angular velocity of the robot
