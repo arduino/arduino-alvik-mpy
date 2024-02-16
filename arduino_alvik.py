@@ -297,7 +297,7 @@ class ArduinoAlvik:
         """
         self.drive(0, 0)
 
-    def get_drive_speed(self, linear_unit: str = 'mm/s', angular_unit: str = 'deg/s') -> (float, float):
+    def get_drive_speed(self, linear_unit: str = 'cm/s', angular_unit: str = 'deg/s') -> (float, float):
         """
         Returns linear and angular velocity of the robot
         :param linear_unit: output linear velocity unit of meas
