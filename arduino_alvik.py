@@ -533,6 +533,22 @@ class ArduinoAlvik:
         """
         return bool(self.touch_bits & 0b10000000)
 
+    @staticmethod
+    def _limit(value: float, lower: float, upper: float) -> float:
+        """
+        Utility function to limit a value between a lower and upper limit
+        :param value:
+        :param lower:
+        :param upper:
+        :return:
+        """
+        assert lower < upper
+        if value > upper:
+            value = upper
+        if value < lower:
+            value = lower
+        return value
+
     def _set_color_reference(self):
         try:
             from color_calibration import BLACK_CAL as _B
@@ -605,9 +621,77 @@ class ArduinoAlvik:
         """
 
         return self.red, self.green, self.blue
-        # return (int((self.red/COLOR_FULL_SCALE)*255),
-        #         int((self.green/COLOR_FULL_SCALE)*255),
-        #         int((self.blue/COLOR_FULL_SCALE)*255))
+
+    def _normalize_color(self, r: float, g: float, b: float) -> (float, float, float):
+        """
+        Color normalization
+        :param r:
+        :param g:
+        :param b:
+        :return:
+        """
+        r = self._limit(r, self._black_cal[0], self._white_cal[0])
+        g = self._limit(g, self._black_cal[1], self._white_cal[1])
+        b = self._limit(b, self._black_cal[2], self._white_cal[2])
+
+        r = (r - self._black_cal[0])/(self._white_cal[0] - self._black_cal[0])
+        g = (g - self._black_cal[1])/(self._white_cal[1] - self._black_cal[1])
+        b = (b - self._black_cal[2])/(self._white_cal[2] - self._black_cal[2])
+
+        return r, g, b
+
+    @staticmethod
+    def rgb2hsv(r: float, g: float, b: float) -> (float, float, float):
+        """
+        Converts normalized rgb to hsv
+        :param r:
+        :param g:
+        :param b:
+        :return:
+        """
+        min_ = min(r, g, b)
+        max_ = max(r, g, b)
+
+        v = max_
+        delta = max_ - min_
+
+        if delta < 0.00001:
+            h = 0
+            s = 0
+            return h, s, v
+
+        if max_ > 0:
+            s = delta / max_
+        else:
+            s = 0
+            h = None
+            return h, s, v
+
+        if r >= max_:
+            h = (g - b) / delta  # color is between yellow and magenta
+        elif g >= max_:
+            h = 2.0 + (b - r) / delta
+        else:
+            h = 4.0 + (r - g) / delta
+
+        h *= 60.0
+        if h < 0:
+            h += 360.0
+
+        return h, s, v
+
+    def get_color(self, color_format: str = 'rgb') -> (float, float, float):
+        """
+        Returns the normalized color readout of the color sensor
+        :param color_format: rgb or hsv only
+        :return:
+        """
+        assert color_format in ['rgb', 'hsv']
+
+        if color_format == 'rgb':
+            return self._normalize_color(*self.get_color_raw())
+        elif color_format == 'hsv':
+            return self.rgb2hsv(*self._normalize_color(*self.get_color_raw()))
 
     def get_distance(self, unit: str = 'cm') -> (float, float, float, float, float):
         """
