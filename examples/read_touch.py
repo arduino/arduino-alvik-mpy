@@ -4,7 +4,6 @@ import sys
 
 alvik = ArduinoAlvik()
 alvik.begin()
-speed = 0
 
 while True:
     try:

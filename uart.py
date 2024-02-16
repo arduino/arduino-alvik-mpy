@@ -4,7 +4,7 @@ from machine import UART
 _UART_ID = 1
 _TX_PIN = 43
 _RX_PIN = 44
-_BAUDRATE = 115200
+_BAUDRATE = 460800
 _BITS = 8
 _PARITY = None
 _STOP = 1
