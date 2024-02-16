@@ -4,13 +4,15 @@ import sys
 
 alvik = ArduinoAlvik()
 alvik.begin()
-speed = 0
+
+reference = 10.0
 
 while True:
     try:
-        alvik.left_wheel.set_pid_gains(10.0, 1.3, 4.2)
-        sleep_ms(100)
-        alvik.right_wheel.set_pid_gains(4.0, 13, 1.9)
+        L, CL, C, CR, R = alvik.get_distance()
+        print(f'C: {C}')
+        error = C - reference
+        alvik.set_wheels_speed(error*10, error*10)
         sleep_ms(100)
     except KeyboardInterrupt as e:
         print('over')

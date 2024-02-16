@@ -7,9 +7,10 @@ alvik.begin()
 
 while True:
     try:
-        ax, ay, az = alvik.get_accelerations()
-        gx, gy, gz = alvik.get_gyros()
-        print(f'ax: {ax}, ay: {ay}, az: {az}, gx: {gx}, gy: {gy}, gz: {gz}')
+        L, CL, C, CR, R = alvik.get_distance()
+        T = alvik.get_distance_top()
+        B = alvik.get_distance_bottom()
+        print(f'T: {T} | B: {B} | L: {L} | CL: {CL} | C: {C} | CR: {CR} | R: {R}')
         sleep_ms(100)
     except KeyboardInterrupt as e:
         print('over')

@@ -4,12 +4,13 @@ import sys
 
 alvik = ArduinoAlvik()
 alvik.begin()
-speed = 0
 
 while True:
     try:
-        r, g, b = alvik.get_color_raw()
-        print(f'RED: {r}, Green: {g}, Blue: {b}')
+        r, g, b = alvik.get_color()
+        h, s, v = alvik.get_color('hsv')
+        print(f'RED: {r}, Green: {g}, Blue: {b}, HUE: {h}, SAT: {s}, VAL: {v}')
+        print(f'COLOR LABEL: {alvik.get_color_label(h, s, v)}')
         sleep_ms(100)
     except KeyboardInterrupt as e:
         print('over')
