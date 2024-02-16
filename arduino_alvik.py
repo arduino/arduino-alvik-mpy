@@ -692,6 +692,46 @@ class ArduinoAlvik:
             return self._normalize_color(*self.get_color_raw())
         elif color_format == 'hsv':
             return self.rgb2hsv(*self._normalize_color(*self.get_color_raw()))
+    @staticmethod
+    def get_color_label(h, s, v) -> str:
+        label = 'UNDEFINED'
+
+        if s < 0.1:
+            if v < 0.05:
+                label = 'BLACK'
+            elif v < 0.15:
+                label = 'GREY'
+            elif v < 0.8:
+                label = 'LIGHT GREY'
+            else:
+                label = 'WHITE'
+        else:
+            if v > 0.1:
+                if 20 <= h < 90:
+                    label = 'YELLOW'
+                elif 90 <= h < 140:
+                    label = 'LIGHT GREEN'
+                elif 140 <= h < 170:
+                    label = 'GREEN'
+                elif 170 <= h < 210:
+                    label = 'LIGHT BLUE'
+                elif 210 <= h < 260:
+                    label = 'BLUE'
+                elif 260 <= h < 280:
+                    label = 'VIOLET'
+                elif 260 <= h < 280:
+                    label = 'VIOLET'
+                else:                   # h<20 or h>=280 is more problematic
+                    if v < 0.5 and s < 0.45:
+                        label = 'BROWN'
+                    else:
+                        if v > 0.77:
+                            label = 'ORANGE'
+                        else:
+                            label = 'RED'
+            else:
+                label = 'BLACK'
+        return label
 
     def get_distance(self, unit: str = 'cm') -> (float, float, float, float, float):
         """
