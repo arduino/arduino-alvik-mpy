@@ -111,6 +111,11 @@ class ArduinoAlvik:
             pass
 
     def is_target_reached(self) -> bool:
+        """
+        Returns True if robot has sent an M or R acknowledgment.
+        It also responds with an ack received message
+        :return:
+        """
         if self.last_ack != ord('M') and self.last_ack != ord('R'):
             sleep_ms(50)
             return False
@@ -192,6 +197,7 @@ class ArduinoAlvik:
     def get_wheels_speed(self, unit: str = 'rpm') -> (float, float):
         """
         Returns the speed of the wheels
+        :param unit: the speed unit of measurement (default: 'rpm')
         :return: left_wheel_speed, right_wheel_speed
         """
         return self.left_wheel.get_speed(unit), self.right_wheel.get_speed(unit)
@@ -230,6 +236,7 @@ class ArduinoAlvik:
     def get_wheels_position(self, unit: str = 'deg') -> (float, float):
         """
         Returns the angle of the wheels
+        :param unit: the angle unit of measurement (default: 'deg')
         :return: left_wheel_angle, right_wheel_angle
         """
         return (convert_angle(self.left_wheel.get_position(), 'deg', unit),
@@ -351,7 +358,7 @@ class ArduinoAlvik:
 
     def get_ack(self):
         """
-        Resets and returns last acknowledgement
+        Returns last acknowledgement
         :return:
         """
         return self.last_ack
@@ -601,7 +608,7 @@ class ArduinoAlvik:
         try:
             with open(file_path, 'r') as file:
                 content = file.read().split('\n')
-                lines = [l + '\n' for l in content if l]
+                lines = [line + '\n' for line in content if line]
         except OSError:
             open(file_path, 'a').close()
             lines = []
@@ -699,9 +706,16 @@ class ArduinoAlvik:
             return self._normalize_color(*self.get_color_raw())
         elif color_format == 'hsv':
             return self.rgb2hsv(*self._normalize_color(*self.get_color_raw()))
+
     @staticmethod
     def get_color_label(h, s, v) -> str:
-        label = 'UNDEFINED'
+        """
+        Returns the color label corresponding to the given normalized HSV color input
+        :param h:
+        :param s:
+        :param v:
+        :return:
+        """
 
         if s < 0.1:
             if v < 0.05:
