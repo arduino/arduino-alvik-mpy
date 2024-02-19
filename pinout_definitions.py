@@ -15,3 +15,8 @@ NANO_CHK = Pin(D4, Pin.OUT)                     # nano D4 -> STM32 NANO_CHK
 CHECK_STM32 = Pin(A6, Pin.IN, Pin.PULL_DOWN)                   # nano A6/D23 -> STM32 ROBOT_CHK
 ESP32_SDA = Pin(A4, Pin.OUT)                    # ESP32_SDA
 ESP32_SCL = Pin(A5, Pin.OUT)                    # ESP32_SCL
+
+# LEDS
+LEDR = Pin(46, Pin.OUT)                      #RED ESP32 LEDR
+LEDG = Pin(0, Pin.OUT)                       #GREEN ESP32 LEDG
+LEDB = Pin(45, Pin.OUT)                      #BLUE ESP32 LEDB

@@ -85,7 +85,7 @@ class ArduinoAlvik:
 
         NANO_CHK.value(1)
         sleep_ms(500)
-
+        led_val = 0
         while not self.is_alvik_on():
             try:
                 ESP32_SDA = Pin(A4, Pin.OUT)
@@ -101,14 +101,24 @@ class ArduinoAlvik:
                 i2c = I2C(0, scl=ESP32_SCL, sda=ESP32_SDA)
                 i2c.writeto(0x36, cmd)
                 soc_raw = struct.unpack('h', i2c.readfrom(0x36, 2))[0]
-                print(f"SOC % : {soc_raw*0.00390625}")
+                soc_perc = soc_raw*0.00390625
+                print(f"SOC % : {round(soc_perc)}")
                 sleep_ms(delay_)
+                if soc_perc > 98:
+                    LEDG.value(0)
+                    LEDR.value(1)
+                else:
+                    LEDR.value(led_val)
+                    LEDG.value(1)
+                    led_val = (led_val + 1) % 2
             except KeyboardInterrupt:
                 self.stop()
                 sys.exit()
             except Exception as e:
                 print(f'Unable to read SOC: {e}')
 
+        LEDR.value(1)
+        LEDG.value(1)
         NANO_CHK.value(0)
 
     def begin(self) -> int:
@@ -473,6 +483,13 @@ class ArduinoAlvik:
             if not self.is_alvik_on():
                 print("Alvik not connected")
                 self._idle(delay_)
+                self._reset_hw()
+                self._flush_uart()
+                sleep_ms(1000)
+                self._wait_for_ack()
+                sleep_ms(2000)
+                self.set_illuminator(True)
+                self.set_behaviour(1)
             if not ArduinoAlvik._update_thread_running:
                 break
             if self._read_message():
