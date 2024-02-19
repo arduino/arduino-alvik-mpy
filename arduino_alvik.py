@@ -1,5 +1,8 @@
+import sys
 import gc
+import struct
 
+from machine import I2C
 from uart import uart
 import _thread
 from time import sleep_ms
@@ -66,27 +69,85 @@ class ArduinoAlvik:
         self.last_ack = ''
         self.version = [None, None, None]
 
+    @staticmethod
+    def is_alvik_on() -> bool:
+        """
+        Returns true if robot is on
+        :return:
+        """
+        return CHECK_STM32.value() == 1
+
+    def _idle(self, delay_=1) -> None:
+        """
+        Alvik's idle mode behaviour
+        :return:
+        """
+
+        NANO_CHK.value(1)
+        sleep_ms(500)
+
+        while not self.is_alvik_on():
+            try:
+                ESP32_SDA = Pin(A4, Pin.OUT)
+                ESP32_SCL = Pin(A5, Pin.OUT)
+                ESP32_SCL.value(1)
+                ESP32_SDA.value(1)
+                sleep_ms(100)
+                ESP32_SCL.value(0)
+                ESP32_SDA.value(0)
+
+                cmd = bytearray(1)
+                cmd[0] = 0x06
+                i2c = I2C(0, scl=ESP32_SCL, sda=ESP32_SDA)
+                i2c.writeto(0x36, cmd)
+                soc_raw = struct.unpack('h', i2c.readfrom(0x36, 2))[0]
+                print(f"SOC % : {soc_raw*0.00390625}")
+                sleep_ms(delay_)
+            except KeyboardInterrupt:
+                self.stop()
+                sys.exit()
+            except Exception as e:
+                print(f'Unable to read SOC: {e}')
+
+        NANO_CHK.value(0)
+
     def begin(self) -> int:
         """
         Begins all Alvik operations
         :return:
         """
-        if not CHECK_STM32.value():
+        if not self.is_alvik_on():
             print("\nTurn on your Arduino Alvik!\n")
-            return -1
+            sleep_ms(1000)
+            self._idle()
         self._begin_update_thread()
         sleep_ms(100)
         self._reset_hw()
-        while uart.any():
-            uart.read(1)
+        self._flush_uart()
         sleep_ms(1000)
-        while self.last_ack != 0x00:
-            sleep_ms(20)
+        self._wait_for_ack()
         sleep_ms(2000)
         self.set_illuminator(True)
         self.set_behaviour(1)
         self._set_color_reference()
         return 0
+
+    def _wait_for_ack(self) -> None:
+        """
+        Waits until receives 0x00 ack from robot
+        :return:
+        """
+        while self.last_ack != 0x00:
+            sleep_ms(20)
+
+    @staticmethod
+    def _flush_uart():
+        """
+        Empties the UART buffer
+        :return:
+        """
+        while uart.any():
+            uart.read(1)
 
     def _begin_update_thread(self):
         """
@@ -409,6 +470,9 @@ class ArduinoAlvik:
         :return:
         """
         while True:
+            if not self.is_alvik_on():
+                print("Alvik not connected")
+                self._idle(delay_)
             if not ArduinoAlvik._update_thread_running:
                 break
             if self._read_message():
