@@ -128,6 +128,7 @@ class ArduinoAlvik:
                     LEDR.value(led_val)
                     LEDG.value(1)
                     led_val = (led_val + 1) % 2
+            print("Alvik is on")
         except KeyboardInterrupt:
             self.stop()
             sys.exit()
@@ -524,7 +525,7 @@ class ArduinoAlvik:
         """
         while True:
             if not self.is_alvik_on():
-                print("Alvik not connected")
+                print("Alvik is off")
                 self._idle(delay_, check_on_thread=True)
                 self._reset_hw()
                 self._flush_uart()
