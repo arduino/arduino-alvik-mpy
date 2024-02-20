@@ -136,6 +136,31 @@ class ArduinoAlvik:
         LEDG.value(1)
         NANO_CHK.value(0)
 
+    def _snake_robot(self, duration: int = 1000):
+        """
+        Snake robot animation
+        :param percentage:
+        :return:
+        """
+        i = 0
+
+        robot = '\U0001F916'
+        snake = '\U0001F40D'
+
+        cycles = int(duration / 200)
+
+        for i in range(0, cycles):
+            sys.stdout.write('\r')
+            pre = ' ' * i
+            between = ' ' * (i % 2 + 1)
+            post = ' ' * 5
+            frame = pre + snake + between + robot + post
+            sys.stdout.write(frame)
+            sleep_ms(200)
+
+        sys.stdout.write('\r')
+        sys.stdout.write('')
+
     def begin(self) -> int:
         """
         Begins all Alvik operations
@@ -149,9 +174,9 @@ class ArduinoAlvik:
         sleep_ms(100)
         self._reset_hw()
         self._flush_uart()
-        sleep_ms(1000)
+        self._snake_robot(1000)
         self._wait_for_ack()
-        sleep_ms(2000)
+        self._snake_robot(2000)
         self.set_illuminator(True)
         self.set_behaviour(1)
         self._set_color_reference()
