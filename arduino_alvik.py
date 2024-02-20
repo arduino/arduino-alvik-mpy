@@ -91,7 +91,7 @@ class ArduinoAlvik:
             marks_str = ' \U0001FAAB'
         sys.stdout.write(marks_str + f" {percentage}% \t")
 
-    def _idle(self, delay_=1) -> None:
+    def _idle(self, delay_=1, check_on_thread=False) -> None:
         """
         Alvik's idle mode behaviour
         :return:
@@ -100,8 +100,11 @@ class ArduinoAlvik:
         NANO_CHK.value(1)
         sleep_ms(500)
         led_val = 0
-        while not self.is_alvik_on():
-            try:
+
+        try:
+            while not self.is_alvik_on():
+                if check_on_thread and not self.__class__._update_thread_running:
+                    break
                 ESP32_SDA = Pin(A4, Pin.OUT)
                 ESP32_SCL = Pin(A5, Pin.OUT)
                 ESP32_SCL.value(1)
@@ -125,16 +128,16 @@ class ArduinoAlvik:
                     LEDR.value(led_val)
                     LEDG.value(1)
                     led_val = (led_val + 1) % 2
-            except KeyboardInterrupt:
-                self.stop()
-                sys.exit()
-            except Exception as e:
-                pass
-                #print(f'Unable to read SOC: {e}')
-
-        LEDR.value(1)
-        LEDG.value(1)
-        NANO_CHK.value(0)
+        except KeyboardInterrupt:
+            self.stop()
+            sys.exit()
+        except Exception as e:
+            pass
+            #print(f'Unable to read SOC: {e}')
+        finally:
+            LEDR.value(1)
+            LEDG.value(1)
+            NANO_CHK.value(0)
 
     def _snake_robot(self, duration: int = 1000):
         """
@@ -522,7 +525,7 @@ class ArduinoAlvik:
         while True:
             if not self.is_alvik_on():
                 print("Alvik not connected")
-                self._idle(delay_)
+                self._idle(delay_, check_on_thread=True)
                 self._reset_hw()
                 self._flush_uart()
                 sleep_ms(1000)
