@@ -85,9 +85,10 @@ class ArduinoAlvik:
         :return:
         """
         sys.stdout.write('\r')
-        marks = int(percentage / 25)
-        #marks_str = '▏' + '▋'*marks + '░'*(4-marks) + ''
-        marks_str = '🔋'
+        if percentage > 98:
+            marks_str = ' \U0001F50B'
+        else:
+            marks_str = ' \U0001FAAB'
         sys.stdout.write(marks_str + f" {percentage}% \t")
 
     def _idle(self, delay_=1) -> None:
@@ -115,7 +116,6 @@ class ArduinoAlvik:
                 i2c.writeto(0x36, cmd)
                 soc_raw = struct.unpack('h', i2c.readfrom(0x36, 2))[0]
                 soc_perc = soc_raw*0.00390625
-                #print(f"SOC % : {round(soc_perc)}")
                 self._progress_bar(round(soc_perc))
                 sleep_ms(delay_)
                 if soc_perc > 98:
@@ -435,8 +435,8 @@ class ArduinoAlvik:
     def set_servo_positions(self, a_position: int, b_position: int):
         """
         Sets A/B servomotor angle
-        :param a_position: position of A servomotor (0-180°)
-        :param b_position: position of B servomotor (0-180°)
+        :param a_position: position of A servomotor (0-180)
+        :param b_position: position of B servomotor (0-180)
         :return:
         """
         self.packeter.packetC2B(ord('S'), a_position & 0xFF, b_position & 0xFF)
