@@ -77,6 +77,19 @@ class ArduinoAlvik:
         """
         return CHECK_STM32.value() == 1
 
+    @staticmethod
+    def _progress_bar(percentage: float) -> None:
+        """
+        Prints a progressbar
+        :param percentage:
+        :return:
+        """
+        sys.stdout.write('\r')
+        marks = int(percentage / 25)
+        #marks_str = '▏' + '▋'*marks + '░'*(4-marks) + ''
+        marks_str = '🔋'
+        sys.stdout.write(marks_str + f" {percentage}% \t")
+
     def _idle(self, delay_=1) -> None:
         """
         Alvik's idle mode behaviour
@@ -102,7 +115,8 @@ class ArduinoAlvik:
                 i2c.writeto(0x36, cmd)
                 soc_raw = struct.unpack('h', i2c.readfrom(0x36, 2))[0]
                 soc_perc = soc_raw*0.00390625
-                print(f"SOC % : {round(soc_perc)}")
+                #print(f"SOC % : {round(soc_perc)}")
+                self._progress_bar(round(soc_perc))
                 sleep_ms(delay_)
                 if soc_perc > 98:
                     LEDG.value(0)
@@ -115,7 +129,8 @@ class ArduinoAlvik:
                 self.stop()
                 sys.exit()
             except Exception as e:
-                print(f'Unable to read SOC: {e}')
+                pass
+                #print(f'Unable to read SOC: {e}')
 
         LEDR.value(1)
         LEDG.value(1)
