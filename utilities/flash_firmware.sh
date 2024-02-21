@@ -70,7 +70,7 @@ read do_flash
 if [ "$do_flash" == "y" ] || [ "$do_flash" == "Y" ]; then
     $python_command -m mpremote $connect_string run firmware_updater.py
 else
-    echo "The firmware will not be flashed to the device."
+    echo "The firmware will not be written to the device."
 fi
 
 $python_command -m mpremote $connect_string reset
