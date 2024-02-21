@@ -64,13 +64,13 @@ echo "Uploading $filename..."
 $python_command -m mpremote $connect_string fs rm :firmware.bin
 $python_command -m mpremote $connect_string fs cp $filename :firmware.bin
 
-echo "Do want to flash the firmware right now? (y/N)"
+echo "Do you want to flash the firmware right now? (y/N)"
 read do_flash
 
 if [ "$do_flash" == "y" ] || [ "$do_flash" == "Y" ]; then
     $python_command -m mpremote $connect_string run firmware_updater.py
 else
-    echo "Firmware was not flashed on the remote device."
+    echo "The firmware was not be flashed to the device."
 fi
 
 $python_command -m mpremote $connect_string reset
