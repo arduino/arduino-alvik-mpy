@@ -42,7 +42,7 @@ set /p userInput=Do you want to flash the firmware right now? (y/N):
 if /i "%userInput%"=="y" (
     python -m mpremote %port_string% run firmware_updater.py
 ) else (
-    echo Firmware was not flashed on the remote device.
+    echo The firmware will not be written to the device.
 )
 
 python -m mpremote %port_string% reset
