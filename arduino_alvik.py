@@ -609,6 +609,13 @@ class ArduinoAlvik:
 
         return 0
 
+    def get_battery_charge(self) -> float:
+        """
+        Returns the battery SOC
+        :return:
+        """
+        return self.battery_perc
+
     def _get_touch(self) -> int:
         """
         Returns the touch sensor's state

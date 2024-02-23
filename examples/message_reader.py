@@ -18,6 +18,7 @@ while True:
         print(f'TOUCH: {alvik.touch_bits}')
         print(f'RGB: {alvik.red} {alvik.green} {alvik.blue}')
         print(f'LINE: {alvik.left_line} {alvik.center_line} {alvik.right_line}')
+        print(f'SOC: {alvik.get_battery_charge()}%')
 
         alvik.set_wheels_speed(speed, speed)
         speed = (speed + 1) % 60
