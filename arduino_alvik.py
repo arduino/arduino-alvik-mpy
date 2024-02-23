@@ -70,7 +70,7 @@ class ArduinoAlvik:
         self.version = [None, None, None]
 
     @staticmethod
-    def is_alvik_on() -> bool:
+    def is_on() -> bool:
         """
         Returns true if robot is on
         :return:
@@ -102,7 +102,7 @@ class ArduinoAlvik:
         led_val = 0
 
         try:
-            while not self.is_alvik_on():
+            while not self.is_on():
                 if check_on_thread and not self.__class__._update_thread_running:
                     break
                 ESP32_SDA = Pin(A4, Pin.OUT)
@@ -170,7 +170,7 @@ class ArduinoAlvik:
         Begins all Alvik operations
         :return:
         """
-        if not self.is_alvik_on():
+        if not self.is_on():
             print("\nTurn on your Arduino Alvik!\n")
             sleep_ms(1000)
             self._idle()
@@ -524,7 +524,7 @@ class ArduinoAlvik:
         :return:
         """
         while True:
-            if not self.is_alvik_on():
+            if not self.is_on():
                 print("Alvik is off")
                 self._idle(delay_, check_on_thread=True)
                 self._reset_hw()

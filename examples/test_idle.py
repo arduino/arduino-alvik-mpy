@@ -10,7 +10,7 @@ speed = 0
 while True:
     try:
 
-        if alvik.is_alvik_on():
+        if alvik.is_on():
             print(f'VER: {alvik.version}')
             print(f'LSP: {alvik.left_wheel.get_speed()}')
             alvik.set_wheels_speed(speed, speed)
