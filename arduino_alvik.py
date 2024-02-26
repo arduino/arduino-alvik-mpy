@@ -66,7 +66,7 @@ class ArduinoAlvik:
         self._bottom_tof = None
         self._linear_velocity = None
         self._angular_velocity = None
-        self._angular_velocity = ''
+        self._last_ack = ''
         self._version = [None, None, None]
 
     @staticmethod
@@ -191,7 +191,7 @@ class ArduinoAlvik:
         Waits until receives 0x00 ack from robot
         :return:
         """
-        while self._angular_velocity != 0x00:
+        while self._last_ack != 0x00:
             sleep_ms(20)
 
     @staticmethod
@@ -231,7 +231,7 @@ class ArduinoAlvik:
         It also responds with an ack received message
         :return:
         """
-        if self._angular_velocity != ord('M') and self._angular_velocity != ord('R'):
+        if self._last_ack != ord('M') and self._last_ack != ord('R'):
             sleep_ms(50)
             return False
         else:
@@ -476,7 +476,7 @@ class ArduinoAlvik:
         Returns last acknowledgement
         :return:
         """
-        return self._angular_velocity
+        return self._last_ack
 
     # def send_ack(self):
     #     self._packeter.packetC1B(ord('X'), ACK_)
@@ -597,7 +597,7 @@ class ArduinoAlvik:
             _, self._linear_velocity, self._angular_velocity = self._packeter.unpacketC2F()
         elif code == ord('x'):
             # robot ack
-            _, self._angular_velocity = self._packeter.unpacketC1B()
+            _, self._last_ack = self._packeter.unpacketC1B()
         elif code == ord('z'):
             # robot ack
             _, self._x, self._y, self._theta = self._packeter.unpacketC3F()
