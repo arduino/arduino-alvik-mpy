@@ -85,7 +85,7 @@ class ArduinoAlvik:
         :return:
         """
         sys.stdout.write('\r')
-        if percentage > 98:
+        if percentage > 97:
             marks_str = ' \U0001F50B'
         else:
             marks_str = ' \U0001FAAB'
@@ -121,7 +121,7 @@ class ArduinoAlvik:
                 soc_perc = soc_raw*0.00390625
                 self._progress_bar(round(soc_perc))
                 sleep_ms(delay_)
-                if soc_perc > 98:
+                if soc_perc > 97:
                     LEDG.value(0)
                     LEDR.value(1)
                 else:
