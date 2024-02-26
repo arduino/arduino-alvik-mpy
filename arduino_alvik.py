@@ -609,12 +609,14 @@ class ArduinoAlvik:
 
         return 0
 
-    def get_battery_charge(self) -> float:
+    def get_battery_charge(self) -> int:
         """
         Returns the battery SOC
         :return:
         """
-        return self.battery_perc
+        if self.battery_perc > 100:
+            return 100
+        return round(self.battery_perc)
 
     def _get_touch(self) -> int:
         """
