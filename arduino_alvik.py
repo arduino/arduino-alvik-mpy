@@ -839,8 +839,15 @@ class ArduinoAlvik:
         elif color_format == 'hsv':
             return self.rgb2hsv(*self._normalize_color(*self.get_color_raw()))
 
+    def get_color_label(self) -> str:
+        """
+        Returns the label of the color as recognized by the sensor
+        :return:
+        """
+        return self.hsv2label(*self.get_color(color_format='hsv'))
+
     @staticmethod
-    def get_color_label(h, s, v) -> str:
+    def hsv2label(h, s, v) -> str:
         """
         Returns the color label corresponding to the given normalized HSV color input
         :param h:
