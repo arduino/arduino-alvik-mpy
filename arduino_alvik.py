@@ -173,7 +173,7 @@ class ArduinoAlvik:
         if not self.is_on():
             print("\nTurn on your Arduino Alvik!\n")
             sleep_ms(1000)
-            self._idle()
+            self._idle(1000)
         self._begin_update_thread()
         sleep_ms(100)
         self._reset_hw()
@@ -526,7 +526,7 @@ class ArduinoAlvik:
         while True:
             if not self.is_on():
                 print("Alvik is off")
-                self._idle(delay_, check_on_thread=True)
+                self._idle(1000, check_on_thread=True)
                 self._reset_hw()
                 self._flush_uart()
                 sleep_ms(1000)
