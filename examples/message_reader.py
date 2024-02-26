@@ -15,7 +15,7 @@ while True:
         print(f'RSP: {alvik.right_wheel.get_speed()}')
         print(f'LPOS: {alvik.left_wheel.get_position()}')
         print(f'RPOS: {alvik.right_wheel.get_position()}')
-        print(f'TOUCH: {alvik.touch_bits}')
+        print(f'TOUCH (UP): {alvik.get_touch_up()}')
         print(f'RGB: {alvik.red} {alvik.green} {alvik.blue}')
         print(f'LINE: {alvik.left_line} {alvik.center_line} {alvik.right_line}')
         print(f'SOC: {alvik.get_battery_charge()}%')
