@@ -9,6 +9,10 @@ def conversion_method(func):
             return func(*args, **kwargs)
         except KeyError:
             raise ConversionError(f'Cannot {func.__name__} from {args[1]} to {args[2]}')
+        except TypeError:
+            return None
+        except Exception as e:
+            raise ConversionError(f'Unexpected error: {e}')
     return wrapper
 
 

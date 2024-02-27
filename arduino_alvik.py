@@ -29,7 +29,7 @@ class ArduinoAlvik:
         self._packeter = ucPack(200)
         self.left_wheel = _ArduinoAlvikWheel(self._packeter, ord('L'))
         self.right_wheel = _ArduinoAlvikWheel(self._packeter, ord('R'))
-        self._led_state = [None]
+        self._led_state = list((None,))
         self.left_led = _ArduinoAlvikRgbLed(self._packeter, 'left', self._led_state,
                                             rgb_mask=[0b00000100, 0b00001000, 0b00010000])
         self.right_led = _ArduinoAlvikRgbLed(self._packeter, 'right', self._led_state,
@@ -84,12 +84,13 @@ class ArduinoAlvik:
         :param percentage:
         :return:
         """
-        sys.stdout.write('\r')
+        sys.stdout.write(bytes('\r'.encode('utf-8')))
         if percentage > 97:
             marks_str = ' \U0001F50B'
         else:
             marks_str = ' \U0001FAAB'
-        sys.stdout.write(marks_str + f" {percentage}% \t")
+        word = marks_str + f" {percentage}% \t"
+        sys.stdout.write(bytes((word.encode('utf-8'))))
 
     def _idle(self, delay_=1, check_on_thread=False) -> None:
         """
@@ -105,20 +106,20 @@ class ArduinoAlvik:
             while not self.is_on():
                 if check_on_thread and not self.__class__._update_thread_running:
                     break
-                ESP32_SDA = Pin(A4, Pin.OUT)
-                ESP32_SCL = Pin(A5, Pin.OUT)
-                ESP32_SCL.value(1)
-                ESP32_SDA.value(1)
+                _ESP32_SDA = Pin(A4, Pin.OUT)
+                _ESP32_SCL = Pin(A5, Pin.OUT)
+                _ESP32_SCL.value(1)
+                _ESP32_SDA.value(1)
                 sleep_ms(100)
-                ESP32_SCL.value(0)
-                ESP32_SDA.value(0)
+                _ESP32_SCL.value(0)
+                _ESP32_SDA.value(0)
 
                 cmd = bytearray(1)
                 cmd[0] = 0x06
                 i2c = I2C(0, scl=ESP32_SCL, sda=ESP32_SDA)
                 i2c.writeto(0x36, cmd)
                 soc_raw = struct.unpack('h', i2c.readfrom(0x36, 2))[0]
-                soc_perc = soc_raw*0.00390625
+                soc_perc = soc_raw * 0.00390625
                 self._progress_bar(round(soc_perc))
                 sleep_ms(delay_)
                 if soc_perc > 97:
@@ -140,30 +141,32 @@ class ArduinoAlvik:
             LEDG.value(1)
             NANO_CHK.value(0)
 
-    def _snake_robot(self, duration: int = 1000):
+    @staticmethod
+    def _snake_robot(duration: int = 1000):
         """
         Snake robot animation
-        :param percentage:
+        :param duration:
         :return:
         """
-        i = 0
 
         robot = '\U0001F916'
         snake = '\U0001F40D'
 
         cycles = int(duration / 200)
 
+        frame = ''
         for i in range(0, cycles):
-            sys.stdout.write('\r')
+            sys.stdout.write(bytes('\r'.encode('utf-8')))
             pre = ' ' * i
             between = ' ' * (i % 2 + 1)
             post = ' ' * 5
             frame = pre + snake + between + robot + post
-            sys.stdout.write(frame)
+            sys.stdout.write(bytes(frame.encode('utf-8')))
             sleep_ms(200)
 
-        sys.stdout.write('\r')
-        sys.stdout.write('')
+        sys.stdout.write(bytes('\r'.encode('utf-8')))
+        clear_frame = ' ' * len(frame)
+        sys.stdout.write(bytes(clear_frame.encode('utf-8')))
 
     def begin(self) -> int:
         """
@@ -309,7 +312,7 @@ class ArduinoAlvik:
         RESET_STM32.value(1)
         sleep_ms(100)
 
-    def get_wheels_speed(self, unit: str = 'rpm') -> (float, float):
+    def get_wheels_speed(self, unit: str = 'rpm') -> (float | None, float | None):
         """
         Returns the speed of the wheels
         :param unit: the speed unit of measurement (default: 'rpm')
@@ -327,8 +330,8 @@ class ArduinoAlvik:
         """
 
         if unit == '%':
-            left_speed = (left_speed/100)*MOTOR_MAX_RPM
-            right_speed = (right_speed/100)*MOTOR_MAX_RPM
+            left_speed = (left_speed / 100) * MOTOR_MAX_RPM
+            right_speed = (right_speed / 100) * MOTOR_MAX_RPM
         else:
             left_speed = convert_rotational_speed(left_speed, unit, 'rpm')
             right_speed = convert_rotational_speed(right_speed, unit, 'rpm')
@@ -345,10 +348,10 @@ class ArduinoAlvik:
         :return:
         """
         self._packeter.packetC2F(ord('A'), convert_angle(left_angle, unit, 'deg'),
-                                convert_angle(right_angle, unit, 'deg'))
+                                 convert_angle(right_angle, unit, 'deg'))
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
 
-    def get_wheels_position(self, unit: str = 'deg') -> (float, float):
+    def get_wheels_position(self, unit: str = 'deg') -> (float | None, float | None):
         """
         Returns the angle of the wheels
         :param unit: the angle unit of measurement (default: 'deg')
@@ -357,7 +360,7 @@ class ArduinoAlvik:
         return (convert_angle(self.left_wheel.get_position(), 'deg', unit),
                 convert_angle(self.right_wheel.get_position(), 'deg', unit))
 
-    def get_orientation(self) -> (float, float, float):
+    def get_orientation(self) -> (float | None, float | None, float | None):
         """
         Returns the orientation of the IMU
         :return: roll, pitch, yaw
@@ -365,28 +368,28 @@ class ArduinoAlvik:
 
         return self._roll, self._pitch, self._yaw
 
-    def get_accelerations(self) -> (float, float, float):
+    def get_accelerations(self) -> (float | None, float | None, float | None):
         """
         Returns the 3-axial acceleration of the IMU
         :return: ax, ay, az
         """
         return self._ax, self._ay, self._az
 
-    def get_gyros(self) -> (float, float, float):
+    def get_gyros(self) -> (float | None, float | None, float | None):
         """
         Returns the 3-axial angular acceleration of the IMU
         :return: gx, gy, gz
         """
         return self._gx, self._gy, self._gz
 
-    def get_imu(self) -> (float, float, float, float, float, float):
+    def get_imu(self) -> (float | None, float | None, float | None, float | None, float | None, float | None):
         """
         Returns all the IMUs readouts
         :return: ax, ay, az, gx, gy, gz
         """
         return self._ax, self._ay, self._az, self._gx, self._gy, self._gz
 
-    def get_line_sensors(self) -> (int, int, int):
+    def get_line_sensors(self) -> (int | None, int | None, int | None):
         """
         Returns the line sensors readout
         :return: left_line, center_line, right_line
@@ -406,7 +409,7 @@ class ArduinoAlvik:
         """
         linear_velocity = convert_speed(linear_velocity, linear_unit, 'mm/s')
         if angular_unit == '%':
-            angular_velocity = (angular_velocity/100)*ROBOT_MAX_DEG_S
+            angular_velocity = (angular_velocity / 100) * ROBOT_MAX_DEG_S
         else:
             angular_velocity = convert_rotational_speed(angular_velocity, angular_unit, 'deg/s')
         self._packeter.packetC2F(ord('V'), linear_velocity, angular_velocity)
@@ -419,7 +422,7 @@ class ArduinoAlvik:
         """
         self.drive(0, 0)
 
-    def get_drive_speed(self, linear_unit: str = 'cm/s', angular_unit: str = 'deg/s') -> (float, float):
+    def get_drive_speed(self, linear_unit: str = 'cm/s', angular_unit: str = 'deg/s') -> (float | None, float | None):
         """
         Returns linear and angular velocity of the robot
         :param linear_unit: output linear velocity unit of meas
@@ -427,7 +430,8 @@ class ArduinoAlvik:
         :return: linear_velocity, angular_velocity
         """
         if angular_unit == '%':
-            angular_velocity = (self._angular_velocity/ROBOT_MAX_DEG_S)*100
+            angular_velocity = (self._angular_velocity / ROBOT_MAX_DEG_S) * 100 \
+                if self._angular_velocity is not None else None
         else:
             angular_velocity = convert_rotational_speed(self._angular_velocity, 'deg/s', angular_unit)
 
@@ -450,7 +454,8 @@ class ArduinoAlvik:
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
         sleep_ms(1000)
 
-    def get_pose(self, distance_unit: str = 'cm', angle_unit: str = 'deg') -> (float, float, float):
+    def get_pose(self, distance_unit: str = 'cm', angle_unit: str = 'deg') \
+            -> (float | None, float | None, float | None):
         """
         Returns the current pose of the robot
         :param distance_unit: unit of x and y outputs
@@ -471,7 +476,7 @@ class ArduinoAlvik:
         self._packeter.packetC2B(ord('S'), a_position & 0xFF, b_position & 0xFF)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
 
-    def get_ack(self):
+    def get_ack(self) -> str:
         """
         Returns last acknowledgement
         :return:
@@ -609,11 +614,13 @@ class ArduinoAlvik:
 
         return 0
 
-    def get_battery_charge(self) -> int:
+    def get_battery_charge(self) -> int | None:
         """
         Returns the battery SOC
         :return:
         """
+        if self._battery_perc is None:
+            return None
         if self._battery_perc > 100:
             return 100
         return round(self._battery_perc)
@@ -729,9 +736,9 @@ class ArduinoAlvik:
             blue_avg += blue
             sleep_ms(10)
 
-        red_avg = int(red_avg/100)
-        green_avg = int(green_avg/100)
-        blue_avg = int(blue_avg/100)
+        red_avg = int(red_avg / 100)
+        green_avg = int(green_avg / 100)
+        blue_avg = int(blue_avg / 100)
 
         if background == 'white':
             self._white_cal = [red_avg, green_avg, blue_avg]
@@ -763,7 +770,7 @@ class ArduinoAlvik:
             for line in lines:
                 file.write(line)
 
-    def get_color_raw(self) -> (int, int, int):
+    def get_color_raw(self) -> (int | None, int | None, int | None):
         """
         Returns the color sensor's raw readout
         :return: red, green, blue
@@ -783,9 +790,9 @@ class ArduinoAlvik:
         g = self._limit(g, self._black_cal[1], self._white_cal[1])
         b = self._limit(b, self._black_cal[2], self._white_cal[2])
 
-        r = (r - self._black_cal[0])/(self._white_cal[0] - self._black_cal[0])
-        g = (g - self._black_cal[1])/(self._white_cal[1] - self._black_cal[1])
-        b = (b - self._black_cal[2])/(self._white_cal[2] - self._black_cal[2])
+        r = (r - self._black_cal[0]) / (self._white_cal[0] - self._black_cal[0])
+        g = (g - self._black_cal[1]) / (self._white_cal[1] - self._black_cal[1])
+        b = (b - self._black_cal[2]) / (self._white_cal[2] - self._black_cal[2])
 
         return r, g, b
 
@@ -829,7 +836,7 @@ class ArduinoAlvik:
 
         return h, s, v
 
-    def get_color(self, color_format: str = 'rgb') -> (float, float, float):
+    def get_color(self, color_format: str = 'rgb') -> (float | None, float | None, float | None):
         """
         Returns the normalized color readout of the color sensor
         :param color_format: rgb or hsv only
@@ -888,7 +895,7 @@ class ArduinoAlvik:
                     label = 'BLUE'
                 elif 260 <= h < 280:
                     label = 'VIOLET'
-                else:                   # h<20 or h>=280 is more problematic
+                else:  # h<20 or h>=280 is more problematic
                     if v < 0.5 and s < 0.45:
                         label = 'BROWN'
                     else:
@@ -900,15 +907,12 @@ class ArduinoAlvik:
                 label = 'BLACK'
         return label
 
-    def get_distance(self, unit: str = 'cm') -> (float, float, float, float, float):
+    def get_distance(self, unit: str = 'cm') -> (float | None, float | None, float | None, float | None, float | None):
         """
         Returns the distance readout of the TOF sensor
         :param unit: distance output unit
         :return: left_tof, center_left_tof, center_tof, center_right_tof, right_tof
         """
-
-        if None in [self._left_tof, self._center_left_tof, self._center_tof, self._center_right_tof, self._right_tof]:
-            return None, None, None, None, None
 
         return (convert_distance(self._left_tof, 'mm', unit),
                 convert_distance(self._center_left_tof, 'mm', unit),
@@ -916,7 +920,7 @@ class ArduinoAlvik:
                 convert_distance(self._center_right_tof, 'mm', unit),
                 convert_distance(self._right_tof, 'mm', unit))
 
-    def get_distance_top(self, unit: str = 'cm') -> float:
+    def get_distance_top(self, unit: str = 'cm') -> float | None:
         """
         Returns the obstacle top distance readout
         :param unit:
@@ -924,7 +928,7 @@ class ArduinoAlvik:
         """
         return convert_distance(self._top_tof, 'mm', unit)
 
-    def get_distance_bottom(self, unit: str = 'cm') -> float:
+    def get_distance_bottom(self, unit: str = 'cm') -> float | None:
         """
         Returns the obstacle bottom distance readout
         :param unit:
@@ -998,26 +1002,26 @@ class _ArduinoAlvikWheel:
         """
 
         if unit == '%':
-            velocity = (velocity/100)*MOTOR_MAX_RPM
+            velocity = (velocity / 100) * MOTOR_MAX_RPM
         else:
             velocity = convert_rotational_speed(velocity, unit, 'rpm')
 
         self._packeter.packetC2B1F(ord('W'), self._label & 0xFF, ord('V'), velocity)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
 
-    def get_speed(self, unit: str = 'rpm') -> float:
+    def get_speed(self, unit: str = 'rpm') -> float | None:
         """
         Returns the current RPM speed of the wheel
         :param unit: the unit of the output speed
         :return:
         """
         if unit == '%':
-            speed = (self._speed/MOTOR_MAX_RPM)*100
+            speed = (self._speed / MOTOR_MAX_RPM) * 100 if self._speed is not None else None
         else:
             speed = convert_rotational_speed(self._speed, 'rpm', unit)
         return speed
 
-    def get_position(self, unit: str = 'deg') -> float:
+    def get_position(self, unit: str = 'deg') -> float | None:
         """
         Returns the wheel position (angle with respect to the reference)
         :param unit: the unit of the output position
