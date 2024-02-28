@@ -3,6 +3,9 @@ import sys
 from time import sleep_ms
 from machine import UART, Pin
 
+A6 = 13                                         # ESP32 pin13 -> nano A6/D23
+CHECK_STM32 = Pin(A6, Pin.IN)    # nano A6/D23 -> TO CHECK STM32 IS ON
+
 STM32_INIT = b'\x7F'
 STM32_NACK = b'\x1F'
 STM32_ACK = b'\x79'
