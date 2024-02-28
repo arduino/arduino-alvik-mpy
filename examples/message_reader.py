@@ -3,8 +3,7 @@ from time import sleep_ms
 import sys
 
 alvik = ArduinoAlvik()
-if alvik.begin() < 0:
-    sys.exit()
+alvik.begin()
 
 speed = 0
 
