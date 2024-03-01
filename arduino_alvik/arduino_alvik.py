@@ -1,24 +1,25 @@
 import sys
 import gc
 import struct
-
 from machine import I2C
-from uart import uart
 import _thread
 from time import sleep_ms
 
 from ucPack import ucPack
 
-from conversions import *
-from pinout_definitions import *
-from robot_definitions import *
-from constants import *
+from .uart import uart
+from .conversions import *
+from .pinout_definitions import *
+from .robot_definitions import *
+from .constants import *
 
 
 class ArduinoAlvik:
 
     _update_thread_running = False
     _update_thread_id = None
+    _touch_events_thread_running = False
+    _touch_events_thread_id = None
 
     def __new__(cls):
         if not hasattr(cls, '_instance'):
@@ -68,6 +69,7 @@ class ArduinoAlvik:
         self._angular_velocity = None
         self._last_ack = ''
         self._version = [None, None, None]
+        self._touch_events = _ArduinoAlvikTouchEvents()
 
     @staticmethod
     def is_on() -> bool:
@@ -135,7 +137,7 @@ class ArduinoAlvik:
             sys.exit()
         except Exception as e:
             pass
-            #print(f'Unable to read SOC: {e}')
+            # print(f'Unable to read SOC: {e}')
         finally:
             LEDR.value(1)
             LEDG.value(1)
@@ -179,6 +181,9 @@ class ArduinoAlvik:
             self._idle(1000)
         self._begin_update_thread()
         sleep_ms(100)
+        if self._touch_events.has_callbacks():
+            print('Starting touch events')
+            self._start_touch_events_thread()
         self._reset_hw()
         self._flush_uart()
         self._snake_robot(1000)
@@ -293,8 +298,11 @@ class ArduinoAlvik:
         # turn off UI leds
         self._set_leds(0x00)
 
-        # stop the update thrad
+        # stop the update thread
         self._stop_update_thread()
+
+        # stop touch events thread
+        self._stop_touch_events_thread()
 
         # delete _instance
         del self.__class__._instance
@@ -953,6 +961,99 @@ class ArduinoAlvik:
                 continue
             print(f'{str(a).upper()} = {getattr(self, str(a))}')
 
+    def on_touch_ok_pressed(self, callback: callable, args: tuple = ()) -> None:
+        """
+        Register callback when touch button OK is pressed
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._touch_events.register_callback('on_ok_pressed', callback, args)
+
+    def on_touch_cancel_pressed(self, callback: callable, args: tuple = ()) -> None:
+        """
+        Register callback when touch button CANCEL is pressed
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._touch_events.register_callback('on_cancel_pressed', callback, args)
+
+    def on_touch_center_pressed(self, callback: callable, args: tuple = ()) -> None:
+        """
+        Register callback when touch button CENTER is pressed
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._touch_events.register_callback('on_center_pressed', callback, args)
+
+    def on_touch_up_pressed(self, callback: callable, args: tuple = ()) -> None:
+        """
+        Register callback when touch button UP is pressed
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._touch_events.register_callback('on_up_pressed', callback, args)
+
+    def on_touch_left_pressed(self, callback: callable, args: tuple = ()) -> None:
+        """
+        Register callback when touch button LEFT is pressed
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._touch_events.register_callback('on_left_pressed', callback, args)
+
+    def on_touch_down_pressed(self, callback: callable, args: tuple = ()) -> None:
+        """
+        Register callback when touch button DOWN is pressed
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._touch_events.register_callback('on_down_pressed', callback, args)
+
+    def on_touch_right_pressed(self, callback: callable, args: tuple = ()) -> None:
+        """
+        Register callback when touch button RIGHT is pressed
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._touch_events.register_callback('on_right_pressed', callback, args)
+
+    def _start_touch_events_thread(self) -> None:
+        """
+        Starts the touch events thread
+        :return:
+        """
+        if not self.__class__._touch_events_thread_running:
+            self.__class__._touch_events_thread_running = True
+            self.__class__._touch_events_thread_id = _thread.start_new_thread(self._update_touch_events, (50,))
+
+    def _update_touch_events(self, delay_: int = 100):
+        """
+        Updates the touch state so that touch events can be generated
+        :param delay_:
+        :return:
+        """
+        while True:
+            if self.is_on() and self._touch_byte is not None:
+                self._touch_events.update_touch_state(self._touch_byte)
+            if not ArduinoAlvik._touch_events_thread_running:
+                break
+            sleep_ms(delay_)
+
+    @classmethod
+    def _stop_touch_events_thread(cls):
+        """
+        Stops the touch events thread
+        :return:
+        """
+        cls._touch_events_thread_running = False
+
 
 class _ArduinoAlvikWheel:
 
@@ -1065,3 +1166,159 @@ class _ArduinoAlvikRgbLed:
         self._led_state[0] = led_status
         self._packeter.packetC1B(ord('L'), led_status & 0xFF)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
+
+
+class _ArduinoAlvikEvents:
+    """
+    This is a generic events class
+    """
+
+    def __init__(self):
+        self._callbacks = dict()
+
+    def register_callback(self, event_name: str, callback: callable, args: tuple = None):
+        """
+        Registers a callback to execute on an event
+        :param event_name:
+        :param callback: the callable
+        :param args: arguments tuple to pass to the callable. remember the comma! (value,)
+        :return:
+        """
+        self._callbacks[event_name] = (callback, args,)
+
+    def has_callbacks(self) -> bool:
+        """
+        True if the _callbacks dictionary has any callback registered
+        :return:
+        """
+        return bool(self._callbacks)
+
+    def execute_callback(self, event_name: str):
+        """
+        Executes the callback associated to the event_name
+        :param event_name:
+        :return:
+        """
+        if event_name not in self._callbacks.keys():
+            return
+        self._callbacks[event_name][0](*self._callbacks[event_name][1])
+
+
+class _ArduinoAlvikTouchEvents(_ArduinoAlvikEvents):
+    """
+    This is the event class to handle touch button events
+    """
+
+    available_events = ['on_ok_pressed', 'on_cancel_pressed',
+                        'on_center_pressed', 'on_left_pressed',
+                        'on_right_pressed', 'on_up_pressed',
+                        'on_down_pressed']
+
+    def __init__(self):
+        self._current_touch_state = 0
+        super().__init__()
+
+    @staticmethod
+    def _is_ok_pressed(current_state, new_state) -> bool:
+        """
+        True if OK was pressed
+        :param current_state:
+        :param new_state:
+        :return:
+        """
+        return not bool(current_state & 0b00000010) and bool(new_state & 0b00000010)
+
+    @staticmethod
+    def _is_cancel_pressed(current_state, new_state) -> bool:
+        """
+        True if CANCEL was pressed
+        :param current_state:
+        :param new_state:
+        :return:
+        """
+        return not bool(current_state & 0b00000100) and bool(new_state & 0b00000100)
+
+    @staticmethod
+    def _is_center_pressed(current_state, new_state) -> bool:
+        """
+        True if CENTER was pressed
+        :param current_state:
+        :param new_state:
+        :return:
+        """
+        return not bool(current_state & 0b00001000) and bool(new_state & 0b00001000)
+
+    @staticmethod
+    def _is_up_pressed(current_state, new_state) -> bool:
+        """
+        True if UP was pressed
+        :param current_state:
+        :param new_state:
+        :return:
+        """
+        return not bool(current_state & 0b00010000) and bool(new_state & 0b00010000)
+
+    @staticmethod
+    def _is_left_pressed(current_state, new_state) -> bool:
+        """
+        True if LEFT was pressed
+        :param current_state:
+        :param new_state:
+        :return:
+        """
+        return not bool(current_state & 0b00100000) and bool(new_state & 0b00100000)
+
+    @staticmethod
+    def _is_down_pressed(current_state, new_state) -> bool:
+        """
+        True if DOWN was pressed
+        :param current_state:
+        :param new_state:
+        :return:
+        """
+        return not bool(current_state & 0b01000000) and bool(new_state & 0b01000000)
+
+    @staticmethod
+    def _is_right_pressed(current_state, new_state) -> bool:
+        """
+        True if RIGHT was pressed
+        :param current_state:
+        :param new_state:
+        :return:
+        """
+        return not bool(current_state & 0b10000000) and bool(new_state & 0b10000000)
+
+    def update_touch_state(self, touch_state: int):
+        """
+        Updates the internal touch state and executes any possible callback
+        :param touch_state:
+        :return:
+        """
+
+        if self._is_ok_pressed(self._current_touch_state, touch_state):
+            self.execute_callback('on_ok_pressed')
+
+        if self._is_cancel_pressed(self._current_touch_state, touch_state):
+            self.execute_callback('on_cancel_pressed')
+
+        if self._is_center_pressed(self._current_touch_state, touch_state):
+            self.execute_callback('on_center_pressed')
+
+        if self._is_up_pressed(self._current_touch_state, touch_state):
+            self.execute_callback('on_up_pressed')
+
+        if self._is_left_pressed(self._current_touch_state, touch_state):
+            self.execute_callback('on_left_pressed')
+
+        if self._is_down_pressed(self._current_touch_state, touch_state):
+            self.execute_callback('on_down_pressed')
+
+        if self._is_right_pressed(self._current_touch_state, touch_state):
+            self.execute_callback('on_right_pressed')
+
+        self._current_touch_state = touch_state
+
+    def register_callback(self, event_name: str, callback: callable, args: tuple = None):
+        if event_name not in self.__class__.available_events:
+            return
+        super().register_callback(event_name, callback, args)
