@@ -1,18 +1,17 @@
 import sys
 import gc
 import struct
-
 from machine import I2C
-from uart import uart
 import _thread
 from time import sleep_ms
 
 from ucPack import ucPack
 
-from conversions import *
-from pinout_definitions import *
-from robot_definitions import *
-from constants import *
+from .uart import uart
+from .conversions import *
+from .pinout_definitions import *
+from .robot_definitions import *
+from .constants import *
 
 
 class ArduinoAlvik:
