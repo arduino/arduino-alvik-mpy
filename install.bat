@@ -16,19 +16,15 @@ if /i "%1"=="-h" (
 )
 
 :install
-python -m mpremote %port_string% fs rm :arduino_alvik.py
-python -m mpremote %port_string% fs rm :constants.py
-python -m mpremote %port_string% fs rm :conversions.py
-python -m mpremote %port_string% fs rm :pinout_definitions.py
-python -m mpremote %port_string% fs rm :robot_definitions.py
-python -m mpremote %port_string% fs rm :uart.py
 
-python -m mpremote %port_string% fs cp arduino_alvik.py :arduino_alvik.py
-python -m mpremote %port_string% fs cp constants.py :constants.py
-python -m mpremote %port_string% fs cp conversions.py :conversions.py
-python -m mpremote %port_string% fs cp pinout_definitions.py :pinout_definitions.py
-python -m mpremote %port_string% fs cp robot_definitions.py :robot_definitions.py
-python -m mpremote %port_string% fs cp uart.py :uart.py
+python -m mpremote %port_string% fs mkdir lib/arduino_alvik
+python -m mpremote %port_string% fs cp arduino_alvik/__init__.py :lib/arduino_alvik/__init__.py
+python -m mpremote %port_string% fs cp arduino_alvik/arduino_alvik.py :lib/arduino_alvik/arduino_alvik.py
+python -m mpremote %port_string% fs cp arduino_alvik/constants.py :lib/arduino_alvik/constants.py
+python -m mpremote %port_string% fs cp arduino_alvik/conversions.py :lib/arduino_alvik/conversions.py
+python -m mpremote %port_string% fs cp arduino_alvik/pinout_definitions.py :lib/arduino_alvik/pinout_definitions.py
+python -m mpremote %port_string% fs cp arduino_alvik/robot_definitions.py :lib/arduino_alvik/robot_definitions.py
+python -m mpremote %port_string% fs cp arduino_alvik/uart.py :lib/arduino_alvik/uart.py
 
 echo Installing dependencies
 python -m mpremote %port_string% mip install github:arduino/ucPack-mpy

@@ -1,7 +1,15 @@
 {
     "urls": [
+        ["arduino_alvik/__init__.py", "github:arduino/arduino_alvik/arduino_alvik/__init__.py"],
+        ["arduino_alvik/arduino_alvik.py", "github:arduino/arduino_alvik/arduino_alvik/arduino_alvik.py"],
+        ["arduino_alvik/constants.py", "github:arduino/arduino_alvik/arduino_alvik/constants.py"],
+        ["arduino_alvik/conversions.py", "github:arduino/arduino_alvik/arduino_alvik/conversions.py"],
+        ["arduino_alvik/pinout_definitions.py", "github:arduino/arduino_alvik/arduino_alvik/pinout_definitions.py"],
+        ["arduino_alvik/robot_definitions.py", "github:arduino/arduino_alvik/arduino_alvik/robot_definitions.py"],
+        ["arduino_alvik/uart.py", "github:arduino/arduino_alvik/arduino_alvik/uart.py"]
     ],
     "deps": [
+        ["github:arduino/ucPack-mpy", "latest"]
     ],
-    "version": "0.2.0"
+    "version": "0.3.0"
 }

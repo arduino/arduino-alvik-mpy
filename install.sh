@@ -42,19 +42,14 @@ fi
 # Uncomment the following line on windows machines
 # python_command="python"
 
-$python_command -m mpremote $connect_string fs rm :arduino_alvik.py
-$python_command -m mpremote $connect_string fs rm :constants.py
-$python_command -m mpremote $connect_string fs rm :conversions.py
-$python_command -m mpremote $connect_string fs rm :pinout_definitions.py
-$python_command -m mpremote $connect_string fs rm :robot_definitions.py
-$python_command -m mpremote $connect_string fs rm :uart.py
-
-$python_command -m mpremote $connect_string fs cp arduino_alvik.py :arduino_alvik.py
-$python_command -m mpremote $connect_string fs cp constants.py :constants.py
-$python_command -m mpremote $connect_string fs cp conversions.py :conversions.py
-$python_command -m mpremote $connect_string fs cp pinout_definitions.py :pinout_definitions.py
-$python_command -m mpremote $connect_string fs cp robot_definitions.py :robot_definitions.py
-$python_command -m mpremote $connect_string fs cp uart.py :uart.py
+$python_command -m mpremote $connect_string fs mkdir lib/arduino_alvik
+$python_command -m mpremote $connect_string fs cp arduino_alvik/__init__.py :lib/arduino_alvik/__init__.py
+$python_command -m mpremote $connect_string fs cp arduino_alvik/arduino_alvik.py :lib/arduino_alvik/arduino_alvik.py
+$python_command -m mpremote $connect_string fs cp arduino_alvik/constants.py :lib/arduino_alvik/constants.py
+$python_command -m mpremote $connect_string fs cp arduino_alvik/conversions.py :lib/arduino_alvik/conversions.py
+$python_command -m mpremote $connect_string fs cp arduino_alvik/pinout_definitions.py :lib/arduino_alvik/pinout_definitions.py
+$python_command -m mpremote $connect_string fs cp arduino_alvik/robot_definitions.py :lib/arduino_alvik/robot_definitions.py
+$python_command -m mpremote $connect_string fs cp arduino_alvik/uart.py :lib/arduino_alvik/uart.py
 
 echo "Installing dependencies"
 $python_command -m mpremote $connect_string mip install github:arduino/ucPack-mpy
