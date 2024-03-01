@@ -1,12 +1,14 @@
 {
     "urls": [
-        ["arduino_alvik/__init__.py", "github:arduino/arduino_alvik/arduino_alvik/__init__.py"],
-        ["arduino_alvik/arduino_alvik.py", "github:arduino/arduino_alvik/arduino_alvik/arduino_alvik.py"],
-        ["arduino_alvik/constants.py", "github:arduino/arduino_alvik/arduino_alvik/constants.py"],
-        ["arduino_alvik/conversions.py", "github:arduino/arduino_alvik/arduino_alvik/conversions.py"],
-        ["arduino_alvik/pinout_definitions.py", "github:arduino/arduino_alvik/arduino_alvik/pinout_definitions.py"],
-        ["arduino_alvik/robot_definitions.py", "github:arduino/arduino_alvik/arduino_alvik/robot_definitions.py"],
-        ["arduino_alvik/uart.py", "github:arduino/arduino_alvik/arduino_alvik/uart.py"]
+        ["arduino_alvik/__init__.py", "github:arduino/arduino-alvik-mpy/arduino_alvik/__init__.py"],
+        ["arduino_alvik/arduino_alvik.py", "github:arduino/arduino-alvik-mpy/arduino_alvik/arduino_alvik.py"],
+        ["arduino_alvik/constants.py", "github:arduino/arduino-alvik-mpy/arduino_alvik/constants.py"],
+        ["arduino_alvik/conversions.py", "github:arduino/arduino-alvik-mpy/arduino_alvik/conversions.py"],
+        ["arduino_alvik/pinout_definitions.py", "github:arduino/arduino-alvik-mpy/arduino_alvik/pinout_definitions.py"],
+        ["arduino_alvik/robot_definitions.py", "github:arduino/arduino-alvik-mpy/arduino_alvik/robot_definitions.py"],
+        ["arduino_alvik/uart.py", "github:arduino/arduino-alvik-mpy/arduino_alvik/uart.py"],
+        ["arduino_alvik/firmware_updater.py", "github:arduino/arduino-alvik-mpy/arduino_alvik/firmware_updater.py"],
+        ["arduino_alvik/stm32_flash.py", "github:arduino/arduino-alvik-mpy/arduino_alvik/stm32_flash.py"]
     ],
     "deps": [
         ["github:arduino/ucPack-mpy", "latest"]
