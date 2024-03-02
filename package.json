@@ -7,7 +7,6 @@
         ["arduino_alvik/pinout_definitions.py", "github:arduino/arduino-alvik-mpy/arduino_alvik/pinout_definitions.py"],
         ["arduino_alvik/robot_definitions.py", "github:arduino/arduino-alvik-mpy/arduino_alvik/robot_definitions.py"],
         ["arduino_alvik/uart.py", "github:arduino/arduino-alvik-mpy/arduino_alvik/uart.py"],
-        ["arduino_alvik/firmware_updater.py", "github:arduino/arduino-alvik-mpy/arduino_alvik/firmware_updater.py"],
         ["arduino_alvik/stm32_flash.py", "github:arduino/arduino-alvik-mpy/arduino_alvik/stm32_flash.py"]
     ],
     "deps": [
