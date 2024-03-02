@@ -1,5 +1,5 @@
 from sys import exit
-from stm32_flash import *
+from arduino_alvik.stm32_flash import *
 
 if CHECK_STM32.value() is not 1:
     print("Turn on your Alvik to continue...")
