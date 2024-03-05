@@ -75,7 +75,7 @@ You can now use Arduino Lab for Micropython to run your examples remotely from t
 Use `mpremote` to copy following the files from the examples folder:
 - `main.py`, this file allows you to automatically start the demo
 - `demo.py`, demo launcher
-- `touch_move.py`, programming the robot movements via touch pads demo
+- `touch_move.py`, programming the robot movements via touch buttons demo
 - `line_follower.py`, black line follower demo
 - `hand_follower.py`, hand following demo, the robot stays always at 10cm from an obstacle placed in front of it.
 
