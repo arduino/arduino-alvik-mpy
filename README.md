@@ -75,7 +75,7 @@ You can now use Arduino Lab for Micropython to run your examples remotely from t
 Use `mpremote` to copy following the files from the examples folder:
 - `main.py`, this file allows you to automatically start the demo
 - `demo.py`, demo launcher
-- `touch_move.py`, programming the robot movements via touchpads demo
+- `touch_move.py`, programming the robot movements via touch pads demo
 - `line_follower.py`, black line follower demo
 - `hand_follower.py`, hand following demo, the robot stays always at 10cm from an obstacle placed in front of it.
 
@@ -90,27 +90,27 @@ Each color allows to run a different demo as following:
 - `green` launches the hand following demo
 - `blue` launches the line follower demo
 
-To run a demo, press the `OK touchpad`, after selecting the right color demo.
+To run a demo, press the `OK touch pad`, after selecting the right color demo.
 
 To run a different demo, turn the robot off and on again or reset the Arduino® Nano ESP32.
 
 ### 1. Touch mode example (RED)
 This example starts with the red leds on.
 
-`directional touchpads` (up, down, left, right) program the desired movements.
+`directional touch pads` (up, down, left, right) program the desired movements.
 
-Everytime a directional touchpads is pressed, the leds blink with a purple color indicating that the command has been registered.
-- `UP touchpad` will register a 10 cm forward movement
-- `DOWN touchpad` will register a 10 cm backward movement
-- `LEFT touchpad` will register a 90° clockwise rotation movement
-- `UP touchpad` will register a 90° counterclockwise rotation movement
+Everytime a directional touch pads is pressed, the leds blink with a purple color indicating that the command has been registered.
+- `UP touch pad` will register a 10 cm forward movement
+- `DOWN touch pad` will register a 10 cm backward movement
+- `LEFT touch pad` will register a 90° clockwise rotation movement
+- `UP touch pad` will register a 90° counterclockwise rotation movement
 
-To clear the commands queue, press the `cancel touchpad`.
+To clear the commands queue, press the `cancel touch pad`.
 The leds will blink in red.
 
 To start the sequence, press the `ok touch pad`.
 
-Pressing the `cancel touchpad` at any time stops the robot and resets the sequence.
+Pressing the `cancel touch pad` at any time stops the robot and resets the sequence.
 
 <br>
 
@@ -123,7 +123,7 @@ To start the robot press the `ok touch pad`.
 
 The robot automatically moves itself to keep a 10 centimeters distance from the obstacle/hand.
 
-It is possible to stop the robot at any time by pressing the `cancel touchpad`.
+It is possible to stop the robot at any time by pressing the `cancel touch pad`.
 
 <br>
 
@@ -132,9 +132,9 @@ This example starts with the blue leds on.
 
 To run this example, a white board and black tape (2cm wide) is required.
 
-Place the robot at the center of the line and press the `ok touchpad`.
+Place the robot at the center of the line and press the `ok touch pad`.
 
-It is possible to stop the robot at any time by pressing the `cancel touchpad`.
+It is possible to stop the robot at any time by pressing the `cancel touch pad`.
 
 
 
