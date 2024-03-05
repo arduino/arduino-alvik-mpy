@@ -72,72 +72,69 @@ You can now use Arduino Lab for Micropython to run your examples remotely from t
 
 ## Default Demo
 
-Use `mpremote` to copy following files from examples:
-- `main.py`, the file which allows you to automatically start the demo
+Use `mpremote` to copy following the files from the examples folder:
+- `main.py`, this file allows you to automatically start the demo
 - `demo.py`, demo launcher
-- `touch_move.py`, programming the robot movements via touch pads demo
+- `touch_move.py`, programming the robot movements via touchpads demo
 - `line_follower.py`, black line follower demo
 - `hand_follower.py`, hand following demo, the robot stays always at 10cm from an obstacle placed in front of it.
 
 When the robot is turned on, the demo launcher starts after Alvik boot.
 
-Blue leds on top turns on.
+Blue leds on top turn on.
 
-By pressing up and down arrows, it is possible to select different demos recognized by different distinct colors (blue, green and red).
+By pressing up and down arrows, it is possible to select different demos identified by different colors (blue, green and red).
 
 Each color allows to run a different demo as following:
-- `red` launchs touch move
-- `green` launchs hand following
-- `blue` launchs line follower.
+- `red` launches the touch-move demo
+- `green` launches the hand following demo
+- `blue` launches the line follower demo
 
-To run a demo, `ok touch pad` pressing is needed after selected the right color demo.
+To run a demo, press the `OK touchpad`, after selecting the right color demo.
 
-To run a different demo, turn off and on the robot or reset the Arduino® Nano ESP32.
+To run a different demo, turn the robot off and on again or reset the Arduino® Nano ESP32.
 
 ### 1. Touch mode example (RED)
-This example starts with red leds on.
+This example starts with the red leds on.
 
-`directional touch pads` (up, down, left, right) program desired movements.
+`directional touchpads` (up, down, left, right) program the desired movements.
 
-Everytime a directional touch pads is pressed, a violet blink happens on leds.
+Everytime a directional touchpads is pressed, the leds blink with a purple color indicating that the command has been registered.
+- `UP touchpad` will register a 10 cm forward movement
+- `DOWN touchpad` will register a 10 cm backward movement
+- `LEFT touchpad` will register a 90° clockwise rotation movement
+- `UP touchpad` will register a 90° counterclockwise rotation movement
 
-To clear the queue of commands, press the `cancel touch pad`.
-A red blink happens on top leds.
+To clear the commands queue, press the `cancel touchpad`.
+The leds will blink in red.
 
 To start the sequence, press the `ok touch pad`.
 
-Everytime is possible to press `cancel touch pad` to stop the robot and reset the sequence.
+Pressing the `cancel touchpad` at any time stops the robot and resets the sequence.
 
 <br>
 
 ### 2. Hand follower example (GREEN)
-This example starts with green leds on.
+This example starts with the green leds on.
 
-Place an obstacle or the hand in front of the robot.
+Place an obstacle or your hand in front of the robot.
 
 To start the robot press the `ok touch pad`.
 
-The robot automatically moves itself to maintain 10 centimeters to the obstacle/hand.
+The robot automatically moves itself to keep a 10 centimeters distance from the obstacle/hand.
 
-It is possible to stop the robot everytime by pressing the `cancel touch pad`.
+It is possible to stop the robot at any time by pressing the `cancel touchpad`.
 
 <br>
 
 ### 3. Line Follower example (BLUE)
-This example starts with blue leds on.
+This example starts with the blue leds on.
 
 To run this example, a white board and black tape (2cm wide) is required.
 
-Place the robot at the center of the line and press `ok touch pad`.
+Place the robot at the center of the line and press the `ok touchpad`.
 
-It is possible to stop the robot everytime by pressing the `cancel touch pad`.
-
-
-
-
-
-
-
+It is possible to stop the robot at any time by pressing the `cancel touchpad`.
 
 
 
