@@ -63,8 +63,15 @@ def run_movement(movement):
     if movement == 'right':
         alvik.rotate(-90, blocking=False)
     while not alvik.get_touch_cancel() and not alvik.is_target_reached():
+        alvik.left_led.set_color(1, 0, 0)
+        alvik.right_led.set_color(1, 0, 0)
+        sleep_ms(100)
+        alvik.left_led.set_color(0, 0, 0)
+        alvik.right_led.set_color(0, 0, 0)
         sleep_ms(100)
 
+while alvik.get_touch_ok():
+    sleep_ms(50)
 
 while not alvik.get_touch_ok():
     add_movement()

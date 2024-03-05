@@ -10,6 +10,9 @@ reference = 10.0
 alvik.left_led.set_color(0, 1, 0)
 alvik.right_led.set_color(0, 1, 0)
 
+while alvik.get_touch_ok():
+    sleep_ms(50)
+
 while not alvik.get_touch_ok():
     sleep_ms(50)
 
