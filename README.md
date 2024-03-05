@@ -102,8 +102,8 @@ This example starts with the red leds on.
 Everytime a `directional touch button` is pressed, the leds blink in a purple color indicating that the command has been registered.
 - `UP touch button` will register a 10 cm forward movement
 - `DOWN touch button` will register a 10 cm backward movement
-- `LEFT touch button` will register a 90° clockwise rotation movement
-- `RIGHT touch button` will register a 90° counterclockwise rotation movement
+- `RIGHT touch button` will register a 90° clockwise rotation movement
+- `LEFT touch button` will register a 90° counterclockwise rotation movement
 
 To clear the commands queue, press the `CANCEL touch button`.
 The leds will blink in red.
