@@ -32,7 +32,7 @@ while True:
             elif menu_status == 1:
                 import hand_follower
             elif menu_status == -1:
-                pass
+                import touch_move
 
         if alvik.get_touch_up() and menu_status < 1:
             menu_status += 1
