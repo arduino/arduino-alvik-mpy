@@ -31,9 +31,9 @@ class ArduinoAlvik:
         self.left_wheel = _ArduinoAlvikWheel(self._packeter, ord('L'))
         self.right_wheel = _ArduinoAlvikWheel(self._packeter, ord('R'))
         self._led_state = list((None,))
-        self.left_led = _ArduinoAlvikRgbLed(self._packeter, 'left', self._led_state,
+        self.left_led = self.DL1 = _ArduinoAlvikRgbLed(self._packeter, 'left', self._led_state,
                                             rgb_mask=[0b00000100, 0b00001000, 0b00010000])
-        self.right_led = _ArduinoAlvikRgbLed(self._packeter, 'right', self._led_state,
+        self.right_led = self.DL2 = _ArduinoAlvikRgbLed(self._packeter, 'right', self._led_state,
                                              rgb_mask=[0b00100000, 0b01000000, 0b10000000])
         self._battery_perc = None
         self._touch_byte = None
