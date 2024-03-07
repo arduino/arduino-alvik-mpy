@@ -73,7 +73,7 @@ def run_movement(movement):
 while alvik.get_touch_ok():
     sleep_ms(50)
 
-while not alvik.get_touch_ok():
+while not (alvik.get_touch_ok() and len(movements) != 0):
     add_movement()
     sleep_ms(50)
 
@@ -88,7 +88,7 @@ try:
 
         movements = []
 
-        while not alvik.get_touch_ok():
+        while not (alvik.get_touch_ok() and len(movements) != 0):
             alvik.left_led.set_color(1, 0, 0)
             alvik.right_led.set_color(1, 0, 0)
             alvik.brake()
