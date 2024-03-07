@@ -42,6 +42,7 @@ fi
 # Uncomment the following line on windows machines
 # python_command="python"
 
+$python_command -m mpremote $connect_string fs mkdir lib
 $python_command -m mpremote $connect_string fs mkdir lib/arduino_alvik
 $python_command -m mpremote $connect_string fs cp arduino_alvik/__init__.py :lib/arduino_alvik/__init__.py
 $python_command -m mpremote $connect_string fs cp arduino_alvik/arduino_alvik.py :lib/arduino_alvik/arduino_alvik.py

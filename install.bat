@@ -17,6 +17,7 @@ if /i "%1"=="-h" (
 
 :install
 
+python -m mpremote %port_string% fs mkdir lib
 python -m mpremote %port_string% fs mkdir lib/arduino_alvik
 python -m mpremote %port_string% fs cp arduino_alvik/__init__.py :lib/arduino_alvik/__init__.py
 python -m mpremote %port_string% fs cp arduino_alvik/arduino_alvik.py :lib/arduino_alvik/arduino_alvik.py
