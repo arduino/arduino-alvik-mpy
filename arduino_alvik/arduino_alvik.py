@@ -232,6 +232,7 @@ class ArduinoAlvik:
     def _wait_for_target(self, timeout):
         start = ticks_ms()
         while True:
+            sleep_ms(2)
             if self.is_target_reached():
                 print("ACK received")
                 break
