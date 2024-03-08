@@ -70,6 +70,8 @@ class ArduinoAlvik:
         self._last_ack = ''
         self._version = [None, None, None]
         self._touch_events = _ArduinoAlvikTouchEvents()
+        self._time_skip = ticks_ms()
+        self._TIMEOUT = 0
 
     @staticmethod
     def is_on() -> bool:
@@ -246,14 +248,17 @@ class ArduinoAlvik:
         It also responds with an ack received message
         :return:
         """
-        if self._last_ack != ord('M') and self._last_ack != ord('R'):
-            sleep_ms(50)
-            return False
-        else:
-            # self._packeter.packetC1B(ord('X'), ord('K'))
-            # uart.write(self._packeter.msg[0:self._packeter.msg_size])
-            sleep_ms(200)
-            return True
+        if ticks_diff(ticks_ms(), self._time_skip) > self._TIMEOUT:
+
+            if self._last_ack != ord('M') and self._last_ack != ord('R'):
+                sleep_ms(50)
+                return False
+            else:
+                # self._packeter.packetC1B(ord('X'), ord('K'))
+                # uart.write(self._packeter.msg[0:self._packeter.msg_size])
+                sleep_ms(200)
+                return True
+        return False
 
     def set_behaviour(self, behaviour: int):
         """
@@ -274,9 +279,11 @@ class ArduinoAlvik:
         """
         angle = convert_angle(angle, unit, 'deg')
         sleep_ms(200)
+        self._time_skip = ticks_ms()
         self._packeter.packetC1F(ord('R'), angle)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
         if blocking:
+            self._TIMEOUT = (angle/MOTOR_CONTROL_DEG_S)*1.05
             self._wait_for_target(timeout=(angle/MOTOR_CONTROL_DEG_S)*1.05)
 
     def move(self, distance: float, unit: str = 'cm', blocking: bool = True):
@@ -289,9 +296,11 @@ class ArduinoAlvik:
         """
         distance = convert_distance(distance, unit, 'mm')
         sleep_ms(200)
+        self._time_skip = ticks_ms()
         self._packeter.packetC1F(ord('G'), distance)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
         if blocking:
+            self._TIMEOUT = (distance/MOTOR_CONTROL_MM_S)*1.05
             self._wait_for_target(timeout=(distance/MOTOR_CONTROL_MM_S)*1.05)
 
     def stop(self):
