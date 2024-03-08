@@ -283,7 +283,7 @@ class ArduinoAlvik:
         self._packeter.packetC1F(ord('R'), angle)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
         if blocking:
-            self._TIMEOUT = (angle/MOTOR_CONTROL_DEG_S)*1.05
+            self._TIMEOUT = 1000*(angle/MOTOR_CONTROL_DEG_S)*1.05
             self._wait_for_target(timeout=(angle/MOTOR_CONTROL_DEG_S)*1.05)
 
     def move(self, distance: float, unit: str = 'cm', blocking: bool = True):
@@ -300,7 +300,7 @@ class ArduinoAlvik:
         self._packeter.packetC1F(ord('G'), distance)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
         if blocking:
-            self._TIMEOUT = (distance/MOTOR_CONTROL_MM_S)*1.05
+            self._TIMEOUT = 1000*(distance/MOTOR_CONTROL_MM_S)*1.05
             self._wait_for_target(timeout=(distance/MOTOR_CONTROL_MM_S)*1.05)
 
     def stop(self):
