@@ -3,7 +3,7 @@ import gc
 import struct
 from machine import I2C
 import _thread
-from time import sleep_ms
+from time import sleep_ms, ticks_ms, ticks_diff
 
 from ucPack import ucPack
 
@@ -229,9 +229,14 @@ class ArduinoAlvik:
         """
         cls._update_thread_running = False
 
-    def _wait_for_target(self):
-        while not self.is_target_reached():
-            pass
+    def _wait_for_target(self, timeout):
+        start = ticks_ms()
+        while True:
+            if self.is_target_reached():
+                print("ACK received")
+            if ticks_diff(ticks_ms(), start) >= timeout*1000:
+                print('timeout reached')
+                break
 
     def is_target_reached(self) -> bool:
         """
@@ -243,8 +248,8 @@ class ArduinoAlvik:
             sleep_ms(50)
             return False
         else:
-            self._packeter.packetC1B(ord('X'), ord('K'))
-            uart.write(self._packeter.msg[0:self._packeter.msg_size])
+            # self._packeter.packetC1B(ord('X'), ord('K'))
+            # uart.write(self._packeter.msg[0:self._packeter.msg_size])
             sleep_ms(200)
             return True
 
@@ -270,7 +275,7 @@ class ArduinoAlvik:
         self._packeter.packetC1F(ord('R'), angle)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
         if blocking:
-            self._wait_for_target()
+            self._wait_for_target(timeout=(angle/MOTOR_CONTROL_DEG_S)*1.05)
 
     def move(self, distance: float, unit: str = 'cm', blocking: bool = True):
         """
@@ -285,7 +290,7 @@ class ArduinoAlvik:
         self._packeter.packetC1F(ord('G'), distance)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
         if blocking:
-            self._wait_for_target()
+            self._wait_for_target(timeout=(distance/MOTOR_CONTROL_MM_S)*1.05)
 
     def stop(self):
         """
