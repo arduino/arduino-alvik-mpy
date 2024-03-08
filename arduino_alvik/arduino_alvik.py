@@ -234,6 +234,7 @@ class ArduinoAlvik:
         while True:
             if self.is_target_reached():
                 print("ACK received")
+                break
             if ticks_diff(ticks_ms(), start) >= timeout*1000:
                 print('timeout reached')
                 break
