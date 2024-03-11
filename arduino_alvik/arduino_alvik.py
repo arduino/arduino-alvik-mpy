@@ -67,7 +67,7 @@ class ArduinoAlvik:
         self._bottom_tof = None
         self._linear_velocity = None
         self._angular_velocity = None
-        self._last_ack = ''
+        self._last_ack = None
         self._waiting_ack = None
         self._version = [None, None, None]
         self._touch_events = _ArduinoAlvikTouchEvents()
@@ -200,6 +200,7 @@ class ArduinoAlvik:
         Waits until receives 0x00 ack from robot
         :return:
         """
+        self._waiting_ack = 0x00
         while self._last_ack != 0x00:
             sleep_ms(20)
 
@@ -618,10 +619,10 @@ class ArduinoAlvik:
             _, self._linear_velocity, self._angular_velocity = self._packeter.unpacketC2F()
         elif code == ord('x'):
             # robot ack
-            _, ack = self._packeter.unpacketC1B()
             if self._waiting_ack is not None:
-                self._last_ack = ack
+                _, self._last_ack = self._packeter.unpacketC1B()
             else:
+                self._packeter.unpacketC1B()
                 self._last_ack = 0x00
         elif code == ord('z'):
             # robot ack
