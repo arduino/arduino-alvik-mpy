@@ -236,7 +236,7 @@ class ArduinoAlvik:
             if ticks_diff(ticks_ms(), start) >= idle_time*1000 and self.is_target_reached():
                 break
             else:
-                print(self._last_ack)
+                # print(self._last_ack)
                 sleep_ms(100)
 
     def is_target_reached(self) -> bool:
