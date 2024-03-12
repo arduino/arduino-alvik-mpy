@@ -3,7 +3,7 @@ import gc
 import struct
 from machine import I2C
 import _thread
-from time import sleep_ms
+from time import sleep_ms, ticks_ms, ticks_diff
 
 from ucPack import ucPack
 
@@ -67,7 +67,8 @@ class ArduinoAlvik:
         self._bottom_tof = None
         self._linear_velocity = None
         self._angular_velocity = None
-        self._last_ack = ''
+        self._last_ack = None
+        self._waiting_ack = None
         self._version = [None, None, None]
         self._touch_events = _ArduinoAlvikTouchEvents()
 
@@ -199,6 +200,7 @@ class ArduinoAlvik:
         Waits until receives 0x00 ack from robot
         :return:
         """
+        self._waiting_ack = 0x00
         while self._last_ack != 0x00:
             sleep_ms(20)
 
@@ -229,9 +231,14 @@ class ArduinoAlvik:
         """
         cls._update_thread_running = False
 
-    def _wait_for_target(self):
-        while not self.is_target_reached():
-            pass
+    def _wait_for_target(self, idle_time):
+        start = ticks_ms()
+        while True:
+            if ticks_diff(ticks_ms(), start) >= idle_time*1000 and self.is_target_reached():
+                break
+            else:
+                # print(self._last_ack)
+                sleep_ms(100)
 
     def is_target_reached(self) -> bool:
         """
@@ -239,14 +246,16 @@ class ArduinoAlvik:
         It also responds with an ack received message
         :return:
         """
-        if self._last_ack != ord('M') and self._last_ack != ord('R'):
-            sleep_ms(50)
-            return False
-        else:
+        if self._waiting_ack is None:
+            return True
+        if self._last_ack == self._waiting_ack:
             self._packeter.packetC1B(ord('X'), ord('K'))
             uart.write(self._packeter.msg[0:self._packeter.msg_size])
-            sleep_ms(200)
+            sleep_ms(100)
+            self._last_ack = 0x00
+            self._waiting_ack = None
             return True
+        return False
 
     def set_behaviour(self, behaviour: int):
         """
@@ -269,8 +278,9 @@ class ArduinoAlvik:
         sleep_ms(200)
         self._packeter.packetC1F(ord('R'), angle)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
+        self._waiting_ack = ord('R')
         if blocking:
-            self._wait_for_target()
+            self._wait_for_target(idle_time=(angle/MOTOR_CONTROL_DEG_S))
 
     def move(self, distance: float, unit: str = 'cm', blocking: bool = True):
         """
@@ -284,8 +294,9 @@ class ArduinoAlvik:
         sleep_ms(200)
         self._packeter.packetC1F(ord('G'), distance)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
+        self._waiting_ack = ord('M')
         if blocking:
-            self._wait_for_target()
+            self._wait_for_target(idle_time=(distance/MOTOR_CONTROL_MM_S))
 
     def stop(self):
         """
@@ -610,7 +621,11 @@ class ArduinoAlvik:
             _, self._linear_velocity, self._angular_velocity = self._packeter.unpacketC2F()
         elif code == ord('x'):
             # robot ack
-            _, self._last_ack = self._packeter.unpacketC1B()
+            if self._waiting_ack is not None:
+                _, self._last_ack = self._packeter.unpacketC1B()
+            else:
+                self._packeter.unpacketC1B()
+                self._last_ack = 0x00
         elif code == ord('z'):
             # robot ack
             _, self._x, self._y, self._theta = self._packeter.unpacketC3F()
