@@ -25,6 +25,7 @@ python -m mpremote %port_string% fs cp arduino_alvik/constants.py :lib/arduino_a
 python -m mpremote %port_string% fs cp arduino_alvik/conversions.py :lib/arduino_alvik/conversions.py
 python -m mpremote %port_string% fs cp arduino_alvik/pinout_definitions.py :lib/arduino_alvik/pinout_definitions.py
 python -m mpremote %port_string% fs cp arduino_alvik/robot_definitions.py :lib/arduino_alvik/robot_definitions.py
+python -m mpremote %port_string% fs cp arduino_alvik/stm32_flash.py :lib/arduino_alvik/stm32_flash.py
 python -m mpremote %port_string% fs cp arduino_alvik/uart.py :lib/arduino_alvik/uart.py
 
 echo Installing dependencies

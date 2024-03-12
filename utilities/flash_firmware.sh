@@ -51,11 +51,6 @@ fi
 # Uncomment the following line on windows machines
 # python_command="python"
 
-echo "Installing flash firmware utilities..."
-
-$python_command -m mpremote $connect_string fs cp ../arduino_alvik/firmware_updater.py :firmware_updater.py
-$python_command -m mpremote $connect_string fs cp ../arduino_alvik/stm32_flash.py :stm32_flash.py
-
 echo "Uploading $filename..."
 
 $python_command -m mpremote $connect_string fs cp $filename :firmware.bin
@@ -64,7 +59,7 @@ echo "Do you want to flash the firmware right now? (y/N)"
 read do_flash
 
 if [ "$do_flash" == "y" ] || [ "$do_flash" == "Y" ]; then
-    $python_command -m mpremote $connect_string run ../arduino_alvik/firmware_updater.py
+    $python_command -m mpremote $connect_string run ../examples/flash_firmware.py
 else
     echo "The firmware will not be written to the device."
 fi
