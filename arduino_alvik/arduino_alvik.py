@@ -3,7 +3,7 @@ import gc
 import struct
 from machine import I2C
 import _thread
-from time import sleep_ms
+from time import sleep_ms, ticks_ms, ticks_diff
 
 from ucPack import ucPack
 
@@ -15,7 +15,6 @@ from .constants import *
 
 
 class ArduinoAlvik:
-
     _update_thread_running = False
     _update_thread_id = None
     _touch_events_thread_running = False
@@ -31,10 +30,10 @@ class ArduinoAlvik:
         self.left_wheel = _ArduinoAlvikWheel(self._packeter, ord('L'))
         self.right_wheel = _ArduinoAlvikWheel(self._packeter, ord('R'))
         self._led_state = list((None,))
-        self.left_led = _ArduinoAlvikRgbLed(self._packeter, 'left', self._led_state,
-                                            rgb_mask=[0b00000100, 0b00001000, 0b00010000])
-        self.right_led = _ArduinoAlvikRgbLed(self._packeter, 'right', self._led_state,
-                                             rgb_mask=[0b00100000, 0b01000000, 0b10000000])
+        self.left_led = self.DL1 = _ArduinoAlvikRgbLed(self._packeter, 'left', self._led_state,
+                                                       rgb_mask=[0b00000100, 0b00001000, 0b00010000])
+        self.right_led = self.DL2 = _ArduinoAlvikRgbLed(self._packeter, 'right', self._led_state,
+                                                        rgb_mask=[0b00100000, 0b01000000, 0b10000000])
         self._battery_perc = None
         self._touch_byte = None
         self._behaviour = None
@@ -67,7 +66,8 @@ class ArduinoAlvik:
         self._bottom_tof = None
         self._linear_velocity = None
         self._angular_velocity = None
-        self._last_ack = ''
+        self._last_ack = None
+        self._waiting_ack = None
         self._version = [None, None, None]
         self._touch_events = _ArduinoAlvikTouchEvents()
 
@@ -131,7 +131,7 @@ class ArduinoAlvik:
                     LEDR.value(led_val)
                     LEDG.value(1)
                     led_val = (led_val + 1) % 2
-            print("Alvik is on")
+            print("********** Alvik is on **********")
         except KeyboardInterrupt:
             self.stop()
             sys.exit()
@@ -176,7 +176,7 @@ class ArduinoAlvik:
         :return:
         """
         if not self.is_on():
-            print("\nTurn on your Arduino Alvik!\n")
+            print("\n********** Please turn on your Arduino Alvik! **********\n")
             sleep_ms(1000)
             self._idle(1000)
         self._begin_update_thread()
@@ -199,6 +199,7 @@ class ArduinoAlvik:
         Waits until receives 0x00 ack from robot
         :return:
         """
+        self._waiting_ack = 0x00
         while self._last_ack != 0x00:
             sleep_ms(20)
 
@@ -229,9 +230,14 @@ class ArduinoAlvik:
         """
         cls._update_thread_running = False
 
-    def _wait_for_target(self):
-        while not self.is_target_reached():
-            pass
+    def _wait_for_target(self, idle_time):
+        start = ticks_ms()
+        while True:
+            if ticks_diff(ticks_ms(), start) >= idle_time * 1000 and self.is_target_reached():
+                break
+            else:
+                # print(self._last_ack)
+                sleep_ms(100)
 
     def is_target_reached(self) -> bool:
         """
@@ -239,14 +245,16 @@ class ArduinoAlvik:
         It also responds with an ack received message
         :return:
         """
-        if self._last_ack != ord('M') and self._last_ack != ord('R'):
-            sleep_ms(50)
-            return False
-        else:
+        if self._waiting_ack is None:
+            return True
+        if self._last_ack == self._waiting_ack:
             self._packeter.packetC1B(ord('X'), ord('K'))
             uart.write(self._packeter.msg[0:self._packeter.msg_size])
-            sleep_ms(200)
+            sleep_ms(100)
+            self._last_ack = 0x00
+            self._waiting_ack = None
             return True
+        return False
 
     def set_behaviour(self, behaviour: int):
         """
@@ -269,8 +277,9 @@ class ArduinoAlvik:
         sleep_ms(200)
         self._packeter.packetC1F(ord('R'), angle)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
+        self._waiting_ack = ord('R')
         if blocking:
-            self._wait_for_target()
+            self._wait_for_target(idle_time=(angle / MOTOR_CONTROL_DEG_S))
 
     def move(self, distance: float, unit: str = 'cm', blocking: bool = True):
         """
@@ -284,8 +293,9 @@ class ArduinoAlvik:
         sleep_ms(200)
         self._packeter.packetC1F(ord('G'), distance)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
+        self._waiting_ack = ord('M')
         if blocking:
-            self._wait_for_target()
+            self._wait_for_target(idle_time=(distance / MOTOR_CONTROL_MM_S))
 
     def stop(self):
         """
@@ -610,7 +620,11 @@ class ArduinoAlvik:
             _, self._linear_velocity, self._angular_velocity = self._packeter.unpacketC2F()
         elif code == ord('x'):
             # robot ack
-            _, self._last_ack = self._packeter.unpacketC1B()
+            if self._waiting_ack is not None:
+                _, self._last_ack = self._packeter.unpacketC1B()
+            else:
+                self._packeter.unpacketC1B()
+                self._last_ack = 0x00
         elif code == ord('z'):
             # robot ack
             _, self._x, self._y, self._theta = self._packeter.unpacketC3F()
@@ -899,9 +913,9 @@ class ArduinoAlvik:
                     label = 'GREEN'
                 elif 170 <= h < 210:
                     label = 'LIGHT BLUE'
-                elif 210 <= h < 260:
+                elif 210 <= h < 250:
                     label = 'BLUE'
-                elif 260 <= h < 280:
+                elif 250 <= h < 280:
                     label = 'VIOLET'
                 else:  # h<20 or h>=280 is more problematic
                     if v < 0.5 and s < 0.45:
@@ -1322,3 +1336,44 @@ class _ArduinoAlvikTouchEvents(_ArduinoAlvikEvents):
         if event_name not in self.__class__.available_events:
             return
         super().register_callback(event_name, callback, args)
+
+
+# UPDATE FIRMWARE METHOD #
+
+def update_firmware(file_path: str):
+    """
+
+    :param file_path: path of your FW bin
+    :return:
+    """
+
+    from sys import exit
+    from stm32_flash import (
+        CHECK_STM32,
+        STM32_endCommunication,
+        STM32_startCommunication,
+        STM32_NACK,
+        STM32_eraseMEM,
+        STM32_writeMEM, )
+
+    if CHECK_STM32.value() is not 1:
+        print("Turn on your Alvik to continue...")
+        while CHECK_STM32.value() is not 1:
+            sleep_ms(500)
+
+    ans = STM32_startCommunication()
+    if ans == STM32_NACK:
+        print("Cannot establish connection with STM32")
+        exit(-1)
+
+    print('\nSTM32 FOUND')
+
+    print('\nERASING MEM')
+    STM32_eraseMEM(0xFFFF)
+
+    print("\nWRITING MEM")
+    STM32_writeMEM(file_path)
+    print("\nDONE")
+    print("\nLower Boot0 and reset STM32")
+
+    STM32_endCommunication()
