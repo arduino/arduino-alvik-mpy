@@ -24,11 +24,6 @@ if "%1"=="" (
     set "filename=%1"
 )
 
-echo Installing flash firmware utilities...
-
-python -m mpremote %port_string% fs cp ../arduino_alvik/firmware_updater.py :firmware_updater.py
-python -m mpremote %port_string% fs cp ../arduino_alvik/stm32_flash.py :stm32_flash.py
-
 echo Uploading %filename%
 
 python -m mpremote %port_string% fs cp %filename% :firmware.bin
@@ -36,7 +31,7 @@ python -m mpremote %port_string% fs cp %filename% :firmware.bin
 set /p userInput=Do you want to flash the firmware right now? (y/N):
 
 if /i "%userInput%"=="y" (
-    python -m mpremote %port_string% run ../arduino_alvik/firmware_updater.py
+    python -m mpremote %port_string% run ../examples/flash_firmware.py
 ) else (
     echo The firmware will not be written to the device.
 )

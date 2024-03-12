@@ -15,7 +15,6 @@ from .constants import *
 
 
 class ArduinoAlvik:
-
     _update_thread_running = False
     _update_thread_id = None
     _touch_events_thread_running = False
@@ -32,9 +31,9 @@ class ArduinoAlvik:
         self.right_wheel = _ArduinoAlvikWheel(self._packeter, ord('R'))
         self._led_state = list((None,))
         self.left_led = self.DL1 = _ArduinoAlvikRgbLed(self._packeter, 'left', self._led_state,
-                                            rgb_mask=[0b00000100, 0b00001000, 0b00010000])
+                                                       rgb_mask=[0b00000100, 0b00001000, 0b00010000])
         self.right_led = self.DL2 = _ArduinoAlvikRgbLed(self._packeter, 'right', self._led_state,
-                                             rgb_mask=[0b00100000, 0b01000000, 0b10000000])
+                                                        rgb_mask=[0b00100000, 0b01000000, 0b10000000])
         self._battery_perc = None
         self._touch_byte = None
         self._behaviour = None
@@ -234,7 +233,7 @@ class ArduinoAlvik:
     def _wait_for_target(self, idle_time):
         start = ticks_ms()
         while True:
-            if ticks_diff(ticks_ms(), start) >= idle_time*1000 and self.is_target_reached():
+            if ticks_diff(ticks_ms(), start) >= idle_time * 1000 and self.is_target_reached():
                 break
             else:
                 # print(self._last_ack)
@@ -280,7 +279,7 @@ class ArduinoAlvik:
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
         self._waiting_ack = ord('R')
         if blocking:
-            self._wait_for_target(idle_time=(angle/MOTOR_CONTROL_DEG_S))
+            self._wait_for_target(idle_time=(angle / MOTOR_CONTROL_DEG_S))
 
     def move(self, distance: float, unit: str = 'cm', blocking: bool = True):
         """
@@ -296,7 +295,7 @@ class ArduinoAlvik:
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
         self._waiting_ack = ord('M')
         if blocking:
-            self._wait_for_target(idle_time=(distance/MOTOR_CONTROL_MM_S))
+            self._wait_for_target(idle_time=(distance / MOTOR_CONTROL_MM_S))
 
     def stop(self):
         """
@@ -1337,3 +1336,44 @@ class _ArduinoAlvikTouchEvents(_ArduinoAlvikEvents):
         if event_name not in self.__class__.available_events:
             return
         super().register_callback(event_name, callback, args)
+
+
+# UPDATE FIRMWARE METHOD #
+
+def update_firmware(file_path: str):
+    """
+
+    :param file_path: path of your FW bin
+    :return:
+    """
+
+    from sys import exit
+    from stm32_flash import (
+        CHECK_STM32,
+        STM32_endCommunication,
+        STM32_startCommunication,
+        STM32_NACK,
+        STM32_eraseMEM,
+        STM32_writeMEM, )
+
+    if CHECK_STM32.value() is not 1:
+        print("Turn on your Alvik to continue...")
+        while CHECK_STM32.value() is not 1:
+            sleep_ms(500)
+
+    ans = STM32_startCommunication()
+    if ans == STM32_NACK:
+        print("Cannot establish connection with STM32")
+        exit(-1)
+
+    print('\nSTM32 FOUND')
+
+    print('\nERASING MEM')
+    STM32_eraseMEM(0xFFFF)
+
+    print("\nWRITING MEM")
+    STM32_writeMEM(file_path)
+    print("\nDONE")
+    print("\nLower Boot0 and reset STM32")
+
+    STM32_endCommunication()
