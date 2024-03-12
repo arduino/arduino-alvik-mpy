@@ -914,9 +914,9 @@ class ArduinoAlvik:
                     label = 'GREEN'
                 elif 170 <= h < 210:
                     label = 'LIGHT BLUE'
-                elif 210 <= h < 260:
+                elif 210 <= h < 250:
                     label = 'BLUE'
-                elif 260 <= h < 280:
+                elif 250 <= h < 280:
                     label = 'VIOLET'
                 else:  # h<20 or h>=280 is more problematic
                     if v < 0.5 and s < 0.45:
