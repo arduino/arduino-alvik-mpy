@@ -202,6 +202,7 @@ class ArduinoAlvik:
         self._waiting_ack = 0x00
         while self._last_ack != 0x00:
             sleep_ms(20)
+        self._waiting_ack = None
 
     @staticmethod
     def _flush_uart():
