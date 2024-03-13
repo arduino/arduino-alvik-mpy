@@ -1348,7 +1348,7 @@ def update_firmware(file_path: str):
     """
 
     from sys import exit
-    from stm32_flash import (
+    from .stm32_flash import (
         CHECK_STM32,
         STM32_endCommunication,
         STM32_startCommunication,
