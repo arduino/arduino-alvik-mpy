@@ -12,5 +12,5 @@
     "deps": [
         ["github:arduino/ucPack-mpy", "0.1.5"]
     ],
-    "version": "0.4.0"
+    "version": "1.0.0"
 }
