@@ -251,9 +251,9 @@ class ArduinoAlvik:
         if self._last_ack == self._waiting_ack:
             self._packeter.packetC1B(ord('X'), ord('K'))
             uart.write(self._packeter.msg[0:self._packeter.msg_size])
-            sleep_ms(100)
-            self._last_ack = 0x00
             self._waiting_ack = None
+            self._last_ack = 0x00
+            sleep_ms(100)
             return True
         return False
 
