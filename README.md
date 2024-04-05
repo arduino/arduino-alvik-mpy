@@ -9,7 +9,7 @@
 
 
 
-## How to Install Micropython library
+## How to Install the Micropython library
 
 ### 1. install mpremote
 
@@ -36,10 +36,50 @@ Windows
 
 __NOTE: DO NOT USE LAB FOR MICROPYTHON TO UPLOAD BIN FILES__
 
+### 2.1  mip (MicroPython Package Manager)
+This is the recommended method for boards which can connect to Internet.
+Run the following MicroPython script using your favourite editor:
+
+```py
+import network
+import mip
+import time
+
+SSID = 'YOUR WIFI NETWORK NAME (must be 2.4GHz)'
+PWD = 'YOUR WIFI PASSWORD'
+
+interface = network.WLAN(network.STA_IF)
+interface.active(False)
+time.sleep(0.1)
+interface.active(True)
+
+def connect(ssid, pwd):
+  interface.connect(ssid, pwd)
+  # Network Connection Progress
+  max_dot_cols = 20
+  dot_col = 0
+  print()
+  print(f"Connecting to {ssid}")
+  while not interface.isconnected():
+    if(dot_col % max_dot_cols == 0):
+        print()
+    print('.', end = '')
+    dot_col +=1
+    time.sleep_ms(100)
+  print() 
+  print(f'{"C" if interface.isconnected() else "NOT c"}onnected to network')
+
+connect(SSID, PWD)
+mip.install('github:arduino/arduino-alvik-mpy')
+
+```
+
 <br>
 <br>
 
 ### 3. Update firmware on your Arduino® Alvik
+
+You can find the latest Arduino Alvik Carrier Firmware code and pre-compiled binary [here](https://github.com/arduino-libraries/Arduino_AlvikCarrier/releases/latest)
 
 Go into `utilities` folder and run:
 ```shell
