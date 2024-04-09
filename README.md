@@ -14,6 +14,7 @@
 ### 1. install mpremote
 
 [mpremote](https://docs.micropython.org/en/latest/reference/mpremote.html) is needed to upload files on the [Arduino® Nano ESP32](https://store.arduino.cc/products/nano-esp32?gad_source=1&gclid=Cj0KCQiA2KitBhCIARIsAPPMEhLtIxV_s7KyLJO4-69RdR1UeFTdgGK_XmI8w7xdbur4gs1oJU4Jl68aAhbaEALw_wcB).
+Minimum suggested mpremote release is 1.22.0
 
 ```shell
 (venv)$ pip install mpremote
@@ -37,39 +38,12 @@ Windows
 __NOTE: DO NOT USE LAB FOR MICROPYTHON TO UPLOAD BIN FILES__
 
 ### 2.1  mip (MicroPython Package Manager)
-This is the recommended method for boards which can connect to Internet.
-Run the following MicroPython script using your favourite editor:
+This is the recommended method for boards which can connect to Internet. Make sure your board is connected to the Internet and
+run the following MicroPython script using your favourite editor:
 
 ```py
-import network
 import mip
-import time
 
-SSID = 'YOUR WIFI NETWORK NAME (must be 2.4GHz)'
-PWD = 'YOUR WIFI PASSWORD'
-
-interface = network.WLAN(network.STA_IF)
-interface.active(False)
-time.sleep(0.1)
-interface.active(True)
-
-def connect(ssid, pwd):
-  interface.connect(ssid, pwd)
-  # Network Connection Progress
-  max_dot_cols = 20
-  dot_col = 0
-  print()
-  print(f"Connecting to {ssid}")
-  while not interface.isconnected():
-    if(dot_col % max_dot_cols == 0):
-        print()
-    print('.', end = '')
-    dot_col +=1
-    time.sleep_ms(100)
-  print() 
-  print(f'{"C" if interface.isconnected() else "NOT c"}onnected to network')
-
-connect(SSID, PWD)
 mip.install('github:arduino/arduino-alvik-mpy')
 
 ```
@@ -79,7 +53,7 @@ mip.install('github:arduino/arduino-alvik-mpy')
 
 ### 3. Update firmware on your Arduino® Alvik
 
-You can find the latest Arduino Alvik Carrier Firmware code and pre-compiled binary [here](https://github.com/arduino-libraries/Arduino_AlvikCarrier/releases/latest)
+Download the latest Arduino [Alvik Carrier Firmware code](https://github.com/arduino-libraries/Arduino_AlvikCarrier) and/or [pre-compiled binary](https://github.com/arduino-libraries/Arduino_AlvikCarrier/releases/latest)
 
 Go into `utilities` folder and run:
 ```shell
@@ -183,3 +157,9 @@ It is possible to stop the robot at any time by pressing the `CANCEL touch butto
 <br>
 
 __Note: not open bin files with Arduino Lab for Micropython because they will be corrupted__
+
+### Useful links
+- [Alvik Carrier](https://github.com/arduino-libraries/Arduino_AlvikCarrier)
+- [Alvik C++](https://github.com/arduino-libraries/Arduino_Alvik)
+- [Product page](https://store.arduino.cc/pages/alvik)
+- [Micropython](https://github.com/arduino/arduino-alvik-mpy)
