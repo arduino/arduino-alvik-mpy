@@ -251,9 +251,9 @@ class ArduinoAlvik:
         if self._last_ack == self._waiting_ack:
             self._packeter.packetC1B(ord('X'), ord('K'))
             uart.write(self._packeter.msg[0:self._packeter.msg_size])
-            sleep_ms(100)
-            self._last_ack = 0x00
             self._waiting_ack = None
+            self._last_ack = 0x00
+            sleep_ms(100)
             return True
         return False
 
@@ -971,10 +971,27 @@ class ArduinoAlvik:
         Prints the Alvik status
         :return:
         """
-        for a in vars(self):
-            if str(a).startswith('_'):
-                continue
-            print(f'{str(a).upper()} = {getattr(self, str(a))}')
+        print('---ALVIK STATUS---')
+        print(f'VERSION: {self._version}')
+
+        print('---SENSORS---')
+        print(f'TOF: T:{self._top_tof} B:{self._bottom_tof} L:{self._left_tof} CL:{self._center_left_tof}' +
+              f' C:{self._center_tof} CR:{self._center_right_tof} R:{self._right_tof}')
+        print(f'LINE: L:{self._left_line} C:{self._center_line} R:{self._right_line}')
+        print(f'ACC: X:{self._ax} Y:{self._ay} Z:{self._az}')
+        print(f'GYR: X:{self._gx} Y:{self._gy} Z:{self._gz}')
+        print(f'POS: X:{self._x} Y:{self._y} TH:{self._theta}')
+        print(f'IMU: ROLL:{self._roll} PITCH:{self._pitch} YAW:{self._yaw}')
+        print(f'COLOR: R:{self._red} G:{self._green} B:{self._blue}')
+        print(f'BATT(%) {self._battery_perc}')
+
+        print('---COMMUNICATION---')
+        print(f'TOUCH BYTE: {self._touch_byte}')
+        print(f'LAST ACK: {self._last_ack}')
+
+        print('---MOTORS---')
+        print(f'LINEAR VEL: {self._linear_velocity}')
+        print(f'ANGULAR VEL: {self._angular_velocity}')
 
     def on_touch_ok_pressed(self, callback: callable, args: tuple = ()) -> None:
         """
