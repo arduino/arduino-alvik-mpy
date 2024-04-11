@@ -35,7 +35,7 @@ Windows
 ***Note: The -p parameter is optional***
 
 
-__NOTE: DO NOT USE LAB FOR MICROPYTHON TO UPLOAD BIN FILES__
+__WARNING: do not open bin files with Arduino Lab for Micropython 0.8.0 because they will be corrupted__
 
 ### 2.1  mip (MicroPython Package Manager)
 This is the recommended method for boards which can connect to Internet. Make sure your board is connected to the Internet and
@@ -53,7 +53,7 @@ mip.install('github:arduino/arduino-alvik-mpy')
 
 ### 3. Update firmware on your Arduino® Alvik
 
-Download the latest Arduino [Alvik Carrier Firmware code](https://github.com/arduino-libraries/Arduino_AlvikCarrier) and/or [pre-compiled binary](https://github.com/arduino-libraries/Arduino_AlvikCarrier/releases/latest)
+Download the latest [Arduino Alvik Carrier Firmware code](https://github.com/arduino-libraries/Arduino_AlvikCarrier) (to compile the firmware using Arduino IDE) or the [pre-compiled firmware](https://github.com/arduino-libraries/Arduino_AlvikCarrier/releases/latest)
 
 Go into `utilities` folder and run:
 ```shell
@@ -156,10 +156,9 @@ It is possible to stop the robot at any time by pressing the `CANCEL touch butto
 <br>
 <br>
 
-__Note: not open bin files with Arduino Lab for Micropython because they will be corrupted__
+__WARNING: do not open bin files with Arduino Lab for Micropython 0.8.0 because they will be corrupted__
 
 ### Useful links
-- [Alvik Carrier](https://github.com/arduino-libraries/Arduino_AlvikCarrier)
-- [Alvik C++](https://github.com/arduino-libraries/Arduino_Alvik)
-- [Product page](https://store.arduino.cc/pages/alvik)
-- [Micropython](https://github.com/arduino/arduino-alvik-mpy)
+- [Arduino_Alvik](https://github.com/arduino-libraries/Arduino_Alvik): Arduino library required to program Alvik
+- [Arduino_AlvikCarrier](https://github.com/arduino-libraries/Arduino_AlvikCarrier): Arduino library required to build the firmware
+- [Arduino Alvik product page](https://store.arduino.cc/pages/alvik)
