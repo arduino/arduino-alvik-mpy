@@ -158,7 +158,13 @@ It is possible to stop the robot at any time by pressing the `CANCEL touch butto
 
 __WARNING: do not open bin files with Arduino Lab for Micropython 0.8.0 because they will be corrupted__
 
-### Useful links
+
+<br>
+<br>
+<br>
+
+
+## Useful links
 - [Arduino_Alvik](https://github.com/arduino-libraries/Arduino_Alvik): Arduino library required to program Alvik
 - [Arduino_AlvikCarrier](https://github.com/arduino-libraries/Arduino_AlvikCarrier): Arduino library required to build the firmware
 - [Arduino Alvik product page](https://store.arduino.cc/pages/alvik)
