@@ -597,6 +597,9 @@ class ArduinoAlvik:
         elif code == ord('p'):
             # battery percentage
             _, self._battery_perc = self._packeter.unpacketC1F()
+        elif code == ord('d'):
+            # distance sensor
+            _, self._left_tof, self._center_tof, self._right_tof = self._packeter.unpacketC3I()
         elif code == ord('t'):
             # touch input
             _, self._touch_byte = self._packeter.unpacketC1B()
