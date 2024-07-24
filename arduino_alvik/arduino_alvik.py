@@ -36,6 +36,7 @@ class ArduinoAlvik:
                                                         rgb_mask=[0b00100000, 0b01000000, 0b10000000])
         self._battery_perc = None
         self._touch_byte = None
+        self._move_byte = None
         self._behaviour = None
         self._red = None
         self._green = None
@@ -70,6 +71,7 @@ class ArduinoAlvik:
         self._waiting_ack = None
         self._version = [None, None, None]
         self._touch_events = _ArduinoAlvikTouchEvents()
+        self._move_events = _ArduinoAlvikMoveEvents()
 
     @staticmethod
     def is_on() -> bool:
@@ -201,7 +203,8 @@ class ArduinoAlvik:
         """
 
         return any([
-            self._touch_events.has_callbacks()
+            self._touch_events.has_callbacks(),
+            self._move_events.has_callbacks()
             # more events check
         ])
 
@@ -614,6 +617,9 @@ class ArduinoAlvik:
         elif code == ord('t'):
             # touch input
             _, self._touch_byte = self._packeter.unpacketC1B()
+        elif code == ord('d'):
+            # movement/shake input
+            _, self._move_byte = self._packeter.unpacketC1B()
         elif code == ord('b'):
             # behaviour
             _, self._behaviour = self._packeter.unpacketC1B()
@@ -722,6 +728,42 @@ class ArduinoAlvik:
         :return:
         """
         return bool(self._touch_bits & 0b10000000)
+
+    @property
+    def _move_bits(self) -> int:
+        """
+        Returns the shake/tilt state
+        :return:
+        """
+        return (self._move_byte & 0xFF) if self._move_byte is not None else 0x00
+
+    def get_shake(self) -> bool:
+        """
+        Returns true if Alvik is shaken
+        :return:
+        """
+        return bool(self._move_bits & 0b00000001)
+
+    def get_tilt(self) -> str:
+        """
+        Returns the tilt string eg: "X", "-Z" etc
+        :return:
+        """
+
+        if bool(self._move_bits & 0b00000100):
+            return "X"
+        if bool(self._move_bits & 0b00001000):
+            return "-X"
+        if bool(self._move_bits & 0b00010000):
+            return "Y"
+        if bool(self._move_bits & 0b00100000):
+            return "-Y"
+        if bool(self._move_bits & 0b01000000):
+            return "Z"
+        if bool(self._move_bits & 0b10000000):
+            return "-Z"
+
+        return ""
 
     @staticmethod
     def _limit(value: float, lower: float, upper: float) -> float:
@@ -1067,6 +1109,69 @@ class ArduinoAlvik:
         """
         self._touch_events.register_callback('on_right_pressed', callback, args)
 
+    def on_shake(self, callback: callable, args: tuple = ()) -> None:
+        """
+        Register callback when Alvik is shaken
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._move_events.register_callback('on_shake', callback, args)
+
+    def on_x_tilt(self, callback: callable, args: tuple = ()) -> None:
+        """
+        Register callback when Alvik is tilted on X-axis
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._move_events.register_callback('on_x_tilt', callback, args)
+
+    def on_nx_tilt(self, callback: callable, args: tuple = ()) -> None:
+        """
+        Register callback when Alvik is tilted on negative X-axis
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._move_events.register_callback('on_nx_tilt', callback, args)
+
+    def on_y_tilt(self, callback: callable, args: tuple = ()) -> None:
+        """
+        Register callback when Alvik is tilted on Y-axis
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._move_events.register_callback('on_y_tilt', callback, args)
+
+    def on_ny_tilt(self, callback: callable, args: tuple = ()) -> None:
+        """
+        Register callback when Alvik is tilted on negative Y-axis
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._move_events.register_callback('on_ny_tilt', callback, args)
+
+    def on_z_tilt(self, callback: callable, args: tuple = ()) -> None:
+        """
+        Register callback when Alvik is tilted on Z-axis
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._move_events.register_callback('on_z_tilt', callback, args)
+
+    def on_nz_tilt(self, callback: callable, args: tuple = ()) -> None:
+        """
+        Register callback when Alvik is tilted on negative Z-axis
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._move_events.register_callback('on_nz_tilt', callback, args)
+
     def _start_events_thread(self) -> None:
         """
         Starts the touch events thread
@@ -1087,7 +1192,8 @@ class ArduinoAlvik:
                 break
 
             if self.is_on():
-                self._touch_events.update_touch_state(self._touch_byte)
+                self._touch_events.update_state(self._touch_byte)
+                self._move_events.update_state(self._move_byte)
                 # MORE events update callbacks to be added
 
             sleep_ms(delay_)
@@ -1219,6 +1325,8 @@ class _ArduinoAlvikEvents:
     This is a generic events class
     """
 
+    available_events = []
+
     def __init__(self):
         self._callbacks = dict()
 
@@ -1230,6 +1338,9 @@ class _ArduinoAlvikEvents:
         :param args: arguments tuple to pass to the callable. remember the comma! (value,)
         :return:
         """
+
+        if event_name not in self.__class__.available_events:
+            return
         self._callbacks[event_name] = (callback, args,)
 
     def has_callbacks(self) -> bool:
@@ -1248,6 +1359,13 @@ class _ArduinoAlvikEvents:
         if event_name not in self._callbacks.keys():
             return
         self._callbacks[event_name][0](*self._callbacks[event_name][1])
+
+    def update_state(self, state):
+        """
+        Updates the internal state of the events handler
+        :return:
+        """
+        pass
 
 
 class _ArduinoAlvikTouchEvents(_ArduinoAlvikEvents):
@@ -1334,43 +1452,154 @@ class _ArduinoAlvikTouchEvents(_ArduinoAlvikEvents):
         """
         return not bool(current_state & 0b10000000) and bool(new_state & 0b10000000)
 
-    def update_touch_state(self, touch_state: int | None):
+    def update_state(self, state: int | None):
         """
         Updates the internal touch state and executes any possible callback
-        :param touch_state:
+        :param state:
         :return:
         """
 
-        if touch_state is None:
+        if state is None:
             return
 
-        if self._is_ok_pressed(self._current_touch_state, touch_state):
+        if self._is_ok_pressed(self._current_touch_state, state):
             self.execute_callback('on_ok_pressed')
 
-        if self._is_cancel_pressed(self._current_touch_state, touch_state):
+        if self._is_cancel_pressed(self._current_touch_state, state):
             self.execute_callback('on_cancel_pressed')
 
-        if self._is_center_pressed(self._current_touch_state, touch_state):
+        if self._is_center_pressed(self._current_touch_state, state):
             self.execute_callback('on_center_pressed')
 
-        if self._is_up_pressed(self._current_touch_state, touch_state):
+        if self._is_up_pressed(self._current_touch_state, state):
             self.execute_callback('on_up_pressed')
 
-        if self._is_left_pressed(self._current_touch_state, touch_state):
+        if self._is_left_pressed(self._current_touch_state, state):
             self.execute_callback('on_left_pressed')
 
-        if self._is_down_pressed(self._current_touch_state, touch_state):
+        if self._is_down_pressed(self._current_touch_state, state):
             self.execute_callback('on_down_pressed')
 
-        if self._is_right_pressed(self._current_touch_state, touch_state):
+        if self._is_right_pressed(self._current_touch_state, state):
             self.execute_callback('on_right_pressed')
 
-        self._current_touch_state = touch_state
+        self._current_touch_state = state
 
-    def register_callback(self, event_name: str, callback: callable, args: tuple = None):
-        if event_name not in self.__class__.available_events:
+
+class _ArduinoAlvikMoveEvents(_ArduinoAlvikEvents):
+    """
+    Event class to handle move events
+    """
+
+    available_events = ['on_shake', 'on_x_tilt', 'on_y_tilt', 'on_z_tilt',
+                        'on_nx_tilt', 'on_ny_tilt', 'on_nz_tilt']
+
+    def __init__(self):
+        self._current_state = 0
+        super().__init__()
+
+    @staticmethod
+    def _is_shaken(current_state, new_state) -> bool:
+        """
+        True if Alvik was shaken
+        :param current_state:
+        :param new_state:
+        :return:
+        """
+        return not bool(current_state & 0b00000001) and bool(new_state & 0b00000001)
+
+    @staticmethod
+    def _is_x_tilted(current_state, new_state) -> bool:
+        """
+        True if Alvik is tilted on X-axis
+        :param current_state:
+        :param new_state:
+        :return:
+        """
+        return not bool(current_state & 0b00000100) and bool(new_state & 0b00000100)
+
+    @staticmethod
+    def _is_neg_x_tilted(current_state, new_state) -> bool:
+        """
+        True if Alvik is tilted on negative X-axis
+        :param current_state:
+        :param new_state:
+        :return:
+        """
+        return not bool(current_state & 0b00001000) and bool(new_state & 0b00001000)
+
+    @staticmethod
+    def _is_y_tilted(current_state, new_state) -> bool:
+        """
+        True if Alvik is tilted on Y-axis
+        :param current_state:
+        :param new_state:
+        :return:
+        """
+        return not bool(current_state & 0b00010000) and bool(new_state & 0b00010000)
+
+    @staticmethod
+    def _is_neg_y_tilted(current_state, new_state) -> bool:
+        """
+        True if Alvik is tilted on negative Y-axis
+        :param current_state:
+        :param new_state:
+        :return:
+        """
+        return not bool(current_state & 0b00100000) and bool(new_state & 0b00100000)
+
+    @staticmethod
+    def _is_z_tilted(current_state, new_state) -> bool:
+        """
+        True if Alvik is tilted on Z-axis
+        :param current_state:
+        :param new_state:
+        :return:
+        """
+        return not bool(current_state & 0b01000000) and bool(new_state & 0b01000000)
+
+    @staticmethod
+    def _is_neg_z_tilted(current_state, new_state) -> bool:
+        """
+        True if Alvik is tilted on negative Z-axis
+        :param current_state:
+        :param new_state:
+        :return:
+        """
+        return not bool(current_state & 0b10000000) and bool(new_state & 0b10000000)
+
+    def update_state(self, state: int | None):
+        """
+        Updates the internal state and executes any possible callback
+        :param state:
+        :return:
+        """
+
+        if state is None:
             return
-        super().register_callback(event_name, callback, args)
+
+        if self._is_shaken(self._current_state, state):
+            self.execute_callback('on_shake')
+
+        if self._is_x_tilted(self._current_state, state):
+            self.execute_callback('on_x_tilted')
+
+        if self._is_neg_x_tilted(self._current_state, state):
+            self.execute_callback('on_nx_tilted')
+
+        if self._is_y_tilted(self._current_state, state):
+            self.execute_callback('on_y_tilted')
+
+        if self._is_neg_y_tilted(self._current_state, state):
+            self.execute_callback('on_ny_tilted')
+
+        if self._is_z_tilted(self._current_state, state):
+            self.execute_callback('on_z_tilted')
+
+        if self._is_neg_z_tilted(self._current_state, state):
+            self.execute_callback('on_nz_tilted')
+
+        self._current_state = state
 
 
 # UPDATE FIRMWARE METHOD #
