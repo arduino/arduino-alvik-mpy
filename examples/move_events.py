@@ -2,8 +2,6 @@ from arduino_alvik import ArduinoAlvik
 from time import sleep
 import sys
 
-value = 0
-
 
 def toggle_left_led(custom_text: str = '') -> None:
     global value
@@ -14,6 +12,7 @@ def toggle_left_led(custom_text: str = '') -> None:
 
 def simple_print(custom_text: str = '') -> None:
     print(custom_text)
+
 
 alvik = ArduinoAlvik()
 alvik.on_shake(toggle_left_led, ("ALVIK WAS SHAKEN... YOU MAKE ME SHIVER :)", ))
@@ -26,30 +25,10 @@ alvik.on_nz_tilt(simple_print, ("TILTED ON -Z",))
 
 alvik.begin()
 
-alvik.left_wheel.reset()
-alvik.right_wheel.reset()
-
 while True:
     try:
-        alvik.left_wheel.set_position(30)
+        print(alvik.get_distance())
         sleep(2)
-        print(f'Left wheel degs: {alvik.left_wheel.get_position()}')
-        print(f'Right wheel degs: {alvik.right_wheel.get_position()}')
-
-        alvik.right_wheel.set_position(10)
-        sleep(2)
-        print(f'Left wheel degs: {alvik.left_wheel.get_position()}')
-        print(f'Right wheel degs: {alvik.right_wheel.get_position()}')
-
-        alvik.left_wheel.set_position(180)
-        sleep(2)
-        print(f'Left wheel degs: {alvik.left_wheel.get_position()}')
-        print(f'Right wheel degs: {alvik.right_wheel.get_position()}')
-
-        alvik.right_wheel.set_position(270)
-        sleep(2)
-        print(f'Left wheel degs: {alvik.left_wheel.get_position()}')
-        print(f'Right wheel degs: {alvik.right_wheel.get_position()}')
 
     except KeyboardInterrupt as e:
         print('over')

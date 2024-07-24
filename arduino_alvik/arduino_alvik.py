@@ -617,7 +617,7 @@ class ArduinoAlvik:
         elif code == ord('t'):
             # touch input
             _, self._touch_byte = self._packeter.unpacketC1B()
-        elif code == ord('d'):
+        elif code == ord('m'):
             # movement/shake input
             _, self._move_byte = self._packeter.unpacketC1B()
         elif code == ord('b'):
