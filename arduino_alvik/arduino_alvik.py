@@ -17,8 +17,8 @@ from .constants import *
 class ArduinoAlvik:
     _update_thread_running = False
     _update_thread_id = None
-    _touch_events_thread_running = False
-    _touch_events_thread_id = None
+    _events_thread_running = False
+    _events_thread_id = None
 
     def __new__(cls):
         if not hasattr(cls, '_instance'):
@@ -181,9 +181,9 @@ class ArduinoAlvik:
             self._idle(1000)
         self._begin_update_thread()
         sleep_ms(100)
-        if self._touch_events.has_callbacks():
-            print('Starting touch events')
-            self._start_touch_events_thread()
+        if self._has_events_registered():
+            print('Starting events thread')
+            self._start_events_thread()
         self._reset_hw()
         self._flush_uart()
         self._snake_robot(1000)
@@ -193,6 +193,17 @@ class ArduinoAlvik:
         self.set_behaviour(1)
         self._set_color_reference()
         return 0
+
+    def _has_events_registered(self) -> bool:
+        """
+        Returns True if Alvik has some events registered
+        :return:
+        """
+
+        return any([
+            self._touch_events.has_callbacks()
+            # more events check
+        ])
 
     def _wait_for_ack(self) -> None:
         """
@@ -313,7 +324,7 @@ class ArduinoAlvik:
         self._stop_update_thread()
 
         # stop touch events thread
-        self._stop_touch_events_thread()
+        self._stop_events_thread()
 
         # delete _instance
         del self.__class__._instance
@@ -1056,35 +1067,38 @@ class ArduinoAlvik:
         """
         self._touch_events.register_callback('on_right_pressed', callback, args)
 
-    def _start_touch_events_thread(self) -> None:
+    def _start_events_thread(self) -> None:
         """
         Starts the touch events thread
         :return:
         """
-        if not self.__class__._touch_events_thread_running:
-            self.__class__._touch_events_thread_running = True
-            self.__class__._touch_events_thread_id = _thread.start_new_thread(self._update_touch_events, (50,))
+        if not self.__class__._events_thread_running:
+            self.__class__._events_thread_running = True
+            self.__class__._events_thread_id = _thread.start_new_thread(self._update_events, (50,))
 
-    def _update_touch_events(self, delay_: int = 100):
+    def _update_events(self, delay_: int = 100):
         """
         Updates the touch state so that touch events can be generated
         :param delay_:
         :return:
         """
         while True:
-            if self.is_on() and self._touch_byte is not None:
-                self._touch_events.update_touch_state(self._touch_byte)
-            if not ArduinoAlvik._touch_events_thread_running:
+            if not ArduinoAlvik._events_thread_running:
                 break
+
+            if self.is_on():
+                self._touch_events.update_touch_state(self._touch_byte)
+                # MORE events update callbacks to be added
+
             sleep_ms(delay_)
 
     @classmethod
-    def _stop_touch_events_thread(cls):
+    def _stop_events_thread(cls):
         """
         Stops the touch events thread
         :return:
         """
-        cls._touch_events_thread_running = False
+        cls._events_thread_running = False
 
 
 class _ArduinoAlvikWheel:
@@ -1320,12 +1334,15 @@ class _ArduinoAlvikTouchEvents(_ArduinoAlvikEvents):
         """
         return not bool(current_state & 0b10000000) and bool(new_state & 0b10000000)
 
-    def update_touch_state(self, touch_state: int):
+    def update_touch_state(self, touch_state: int | None):
         """
         Updates the internal touch state and executes any possible callback
         :param touch_state:
         :return:
         """
+
+        if touch_state is None:
+            return
 
         if self._is_ok_pressed(self._current_touch_state, touch_state):
             self.execute_callback('on_ok_pressed')
