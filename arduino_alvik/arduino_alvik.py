@@ -737,7 +737,7 @@ class ArduinoAlvik:
         Returns the shake/tilt state
         :return:
         """
-        return (self._move_byte & 0xFF) if self._move_byte is not None else 0x00
+        return (self._move_byte & 0xFF) if self._move_byte is not None else 0x80
 
     def get_shake(self) -> bool:
         """
