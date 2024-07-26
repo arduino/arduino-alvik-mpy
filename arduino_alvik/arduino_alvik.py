@@ -1059,7 +1059,7 @@ class ArduinoAlvik:
         """
 
         self._timer_events = _ArduinoAlvikTimerEvents(period)
-        self._timer_events.register_callback(mode, callback, *args)
+        self._timer_events.register_callback(mode, callback, args)
 
     def on_touch_ok_pressed(self, callback: callable, args: tuple = ()) -> None:
         """
