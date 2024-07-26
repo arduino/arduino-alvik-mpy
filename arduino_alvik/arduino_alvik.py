@@ -1656,22 +1656,22 @@ class _ArduinoAlvikMoveEvents(_ArduinoAlvikEvents):
             self.execute_callback('on_shake')
 
         if self._is_x_tilted(self._current_state, state):
-            self.execute_callback('on_x_tilted')
+            self.execute_callback('on_x_tilt')
 
         if self._is_neg_x_tilted(self._current_state, state):
-            self.execute_callback('on_nx_tilted')
+            self.execute_callback('on_nx_tilt')
 
         if self._is_y_tilted(self._current_state, state):
-            self.execute_callback('on_y_tilted')
+            self.execute_callback('on_y_tilt')
 
         if self._is_neg_y_tilted(self._current_state, state):
-            self.execute_callback('on_ny_tilted')
+            self.execute_callback('on_ny_tilt')
 
         if self._is_z_tilted(self._current_state, state):
-            self.execute_callback('on_z_tilted')
+            self.execute_callback('on_z_tilt')
 
         if self._is_neg_z_tilted(self._current_state, state):
-            self.execute_callback('on_nz_tilted')
+            self.execute_callback('on_nz_tilt')
 
         self._current_state = state
 
