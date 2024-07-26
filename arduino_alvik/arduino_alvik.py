@@ -72,6 +72,7 @@ class ArduinoAlvik:
         self._version = [None, None, None]
         self._touch_events = _ArduinoAlvikTouchEvents()
         self._move_events = _ArduinoAlvikMoveEvents()
+        self._timer_events = _ArduinoAlvikTimerEvents(-1)
 
     @staticmethod
     def is_on() -> bool:
@@ -204,7 +205,8 @@ class ArduinoAlvik:
 
         return any([
             self._touch_events.has_callbacks(),
-            self._move_events.has_callbacks()
+            self._move_events.has_callbacks(),
+            self._timer_events.has_callbacks()
             # more events check
         ])
 
@@ -618,7 +620,7 @@ class ArduinoAlvik:
             # touch input
             _, self._touch_byte = self._packeter.unpacketC1B()
         elif code == ord('m'):
-            # movement/shake input
+            # tilt/shake input
             _, self._move_byte = self._packeter.unpacketC1B()
         elif code == ord('b'):
             # behaviour
@@ -1046,6 +1048,19 @@ class ArduinoAlvik:
         print(f'LINEAR VEL: {self._linear_velocity}')
         print(f'ANGULAR VEL: {self._angular_velocity}')
 
+    def timer(self, mode: str, period: int, callback: callable, args: tuple = ()) -> None:
+        """
+        Register a timer callback
+        :param mode: _ArduinoAlvikTimerEvents.PERIODIC or .ONE_SHOT
+        :param period: period in milliseconds
+        :param callback:
+        :param args:
+        :return:
+        """
+
+        self._timer_events = _ArduinoAlvikTimerEvents(period)
+        self._timer_events.register_callback(mode, callback, *args)
+
     def on_touch_ok_pressed(self, callback: callable, args: tuple = ()) -> None:
         """
         Register callback when touch button OK is pressed
@@ -1194,6 +1209,7 @@ class ArduinoAlvik:
             if self.is_on():
                 self._touch_events.update_state(self._touch_byte)
                 self._move_events.update_state(self._move_byte)
+                self._timer_events.update_state(ticks_ms())
                 # MORE events update callbacks to be added
 
             sleep_ms(delay_)
@@ -1366,6 +1382,64 @@ class _ArduinoAlvikEvents:
         :return:
         """
         pass
+
+
+class _ArduinoAlvikTimerEvents(_ArduinoAlvikEvents):
+    """
+    Event class to handle timer events
+    """
+
+    available_events = ['periodic', 'one_shot']
+    PERIODIC = 'periodic'
+    ONE_SHOT = 'one_shot'
+
+    def __init__(self, period: int):
+        """
+        Timer initialization
+        :param period: Timer period in milliseconds
+        """
+        self._last_trigger = ticks_ms()
+        self._period = period
+        self._triggered = False
+        super().__init__()
+
+    def register_callback(self, event_name: str, callback: callable, args: tuple = None):
+        """
+        Repeated calls to register_callback will overwrite the timer's behaviour. The Timer can be either PERIODIC
+         or ONE_SHOT
+        :param event_name:
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._callbacks = dict()
+        super().register_callback(event_name, callback, args)
+
+    def _is_period_expired(self, now=ticks_ms()) -> bool:
+        """
+        True if the timer period is expired
+        :return:
+        """
+
+        if ticks_diff(now, self._last_trigger) > self._period:
+            self._last_trigger = now
+            return True
+
+        return False
+
+    def update_state(self, state):
+        """
+        Updates the internal state of the events handler and executes the related callback
+        :return:
+        """
+
+        if list(self._callbacks.keys()) == [self.PERIODIC]:
+            if self._is_period_expired(state):
+                self.execute_callback(self.PERIODIC)
+        elif list(self._callbacks.keys()) == [self.ONE_SHOT] and not self._triggered:
+            if self._is_period_expired(state):
+                self.execute_callback(self.ONE_SHOT)
+                self._triggered = True
 
 
 class _ArduinoAlvikTouchEvents(_ArduinoAlvikEvents):
