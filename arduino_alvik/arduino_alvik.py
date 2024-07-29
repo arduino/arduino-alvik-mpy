@@ -183,10 +183,9 @@ class ArduinoAlvik:
             sleep_ms(1000)
             self._idle(1000)
         self._begin_update_thread()
+
         sleep_ms(100)
-        if self._has_events_registered():
-            print('Starting events thread')
-            self._start_events_thread()
+
         self._reset_hw()
         self._flush_uart()
         self._snake_robot(1000)
@@ -195,6 +194,11 @@ class ArduinoAlvik:
         self.set_illuminator(True)
         self.set_behaviour(1)
         self._set_color_reference()
+
+        if self._has_events_registered():
+            print('Starting events thread')
+            self._start_events_thread()
+
         return 0
 
     def _has_events_registered(self) -> bool:
@@ -1194,6 +1198,7 @@ class ArduinoAlvik:
         """
         if not self.__class__._events_thread_running:
             self.__class__._events_thread_running = True
+            self._timer_events.reset()
             self.__class__._events_thread_id = _thread.start_new_thread(self._update_events, (50,))
 
     def _update_events(self, delay_: int = 100):
@@ -1402,6 +1407,13 @@ class _ArduinoAlvikTimerEvents(_ArduinoAlvikEvents):
         self._period = period
         self._triggered = False
         super().__init__()
+
+    def reset(self):
+        """
+        Resets the timer. Use just before starting the events thread
+        :return:
+        """
+        self._last_trigger = ticks_ms()
 
     def register_callback(self, event_name: str, callback: callable, args: tuple = None):
         """
