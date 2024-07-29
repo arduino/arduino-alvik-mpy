@@ -1198,7 +1198,8 @@ class ArduinoAlvik:
         """
         if not self.__class__._events_thread_running:
             self.__class__._events_thread_running = True
-            self._timer_events.reset()
+            self._timer_events.reset()                                     # resets the timer before starting
+            self._move_events.reset(_ArduinoAlvikMoveEvents.NZ_TILT)       # resets the orientation to -Z tilted
             self.__class__._events_thread_id = _thread.start_new_thread(self._update_events, (50,))
 
     def _update_events(self, delay_: int = 100):
@@ -1580,9 +1581,19 @@ class _ArduinoAlvikMoveEvents(_ArduinoAlvikEvents):
     available_events = ['on_shake', 'on_x_tilt', 'on_y_tilt', 'on_z_tilt',
                         'on_nx_tilt', 'on_ny_tilt', 'on_nz_tilt']
 
+    NZ_TILT = 0x80
+
     def __init__(self):
         self._current_state = 0
         super().__init__()
+
+    def reset(self, state: int = 0x00):
+        """
+        Sets the initial state
+        :param state:
+        :return:
+        """
+        self._current_state = state
 
     @staticmethod
     def _is_shaken(current_state, new_state) -> bool:
