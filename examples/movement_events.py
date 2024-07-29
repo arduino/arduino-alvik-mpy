@@ -3,6 +3,9 @@ from time import sleep
 import sys
 
 
+value = 0
+
+
 def toggle_left_led(custom_text: str = '') -> None:
     global value
     value = (value + 1) % 2
