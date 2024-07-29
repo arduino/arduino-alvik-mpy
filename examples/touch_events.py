@@ -2,13 +2,26 @@ from arduino_alvik import ArduinoAlvik
 from time import sleep
 import sys
 
-value = 0
+
+def toggle_value():
+    """
+    This function yields a generator object that toggles values between 0 and 1.
+    :return:
+    """
+    value = 0
+    while True:
+        yield value % 2
+        value += 1
 
 
-def toggle_left_led(custom_text: str = '') -> None:
-    global value
-    value = (value + 1) % 2
-    alvik.left_led.set_color(value, 0, 0)
+def toggle_left_led(custom_text: str, val) -> None:
+    """
+    This function toggles the lef led in the red channel. It also writes some custom text.
+    :param custom_text: your custom text
+    :param val: a toggle signal generator
+    :return:
+    """
+    alvik.left_led.set_color(next(val), 0, 0)
     print(f"RED BLINKS! {custom_text}")
 
 
@@ -16,7 +29,7 @@ def simple_print(custom_text: str = '') -> None:
     print(custom_text)
 
 alvik = ArduinoAlvik()
-alvik.on_touch_ok_pressed(toggle_left_led, ("OK WAS PRESSED... THAT'S COOL", ))
+alvik.on_touch_ok_pressed(toggle_left_led, ("OK WAS PRESSED... THAT'S COOL", toggle_value(), ))
 alvik.on_touch_center_pressed(simple_print, ("CENTER PRESSED",))
 alvik.on_touch_cancel_pressed(simple_print, ("CANCEL PRESSED",))
 alvik.on_touch_up_pressed(simple_print, ("UP PRESSED",))
