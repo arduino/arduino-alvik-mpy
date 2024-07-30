@@ -1409,12 +1409,28 @@ class _ArduinoAlvikTimerEvents(_ArduinoAlvikEvents):
         self._triggered = False
         super().__init__()
 
-    def reset(self):
+    def set(self, start=ticks_ms(), period: int = None):
         """
-        Resets the timer. Use just before starting the events thread
+        Sets the last trigger time
+        :param start:
+        :param period:
         :return:
         """
-        self._last_trigger = ticks_ms()
+        self._last_trigger = start
+        if period is not None:
+            self._period = period
+
+    def reset(self, start=ticks_ms(), period: int = None):
+        """
+        Resets the timer. Use just before starting the events thread or if you want to restart the Timer
+        :param start:
+        :param period:
+        :return:
+        """
+        self._last_trigger = start
+        if period is not None:
+            self._period = period
+        self._triggered = False
 
     def register_callback(self, event_name: str, callback: callable, args: tuple = None):
         """
