@@ -517,6 +517,14 @@ class ArduinoAlvik:
         self._packeter.packetC2B(ord('S'), a_position & 0xFF, b_position & 0xFF)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
 
+    def get_servo_positions(self) -> (int, int):
+        """
+        Returns the current servomotor positions
+        :return: position of A/B servomotor (0-180)
+        """
+
+        return self._servo_positions[0], self._servo_positions[1]
+
     def get_ack(self) -> str:
         """
         Returns last acknowledgement
@@ -1246,6 +1254,13 @@ class _ArduinoAlvikServo:
         self._position[self._id] = position
         self._packeter.packetC2B(ord('S'), self._position[0] & 0xFF, self._position[1] & 0xFF)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
+
+    def get_position(self) -> int:
+        """
+        Returns the position of the servo
+        :return:
+        """
+        return self._position[self._id]
 
 
 class _ArduinoAlvikWheel:
