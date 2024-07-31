@@ -1052,7 +1052,7 @@ class ArduinoAlvik:
         print(f'LINEAR VEL: {self._linear_velocity}')
         print(f'ANGULAR VEL: {self._angular_velocity}')
 
-    def timer(self, mode: str, period: int, callback: callable, args: tuple = ()) -> None:
+    def set_timer(self, mode: str, period: int, callback: callable, args: tuple = ()) -> None:
         """
         Register a timer callback
         :param mode: _ArduinoAlvikTimerEvents.PERIODIC or .ONE_SHOT
@@ -1064,6 +1064,14 @@ class ArduinoAlvik:
 
         self._timer_events = _ArduinoAlvikTimerEvents(period)
         self._timer_events.register_callback(mode, callback, args)
+
+    @property
+    def timer(self):
+        """
+        Gives access to the timer object
+        :return:
+        """
+        return self._timer_events
 
     def on_touch_ok_pressed(self, callback: callable, args: tuple = ()) -> None:
         """
@@ -1407,30 +1415,53 @@ class _ArduinoAlvikTimerEvents(_ArduinoAlvikEvents):
         self._last_trigger = ticks_ms()
         self._period = period
         self._triggered = False
+        self._stopped = False
         super().__init__()
 
-    def set(self, start=ticks_ms(), period: int = None):
+    def set(self, start=None, period: int = None):
         """
         Sets the last trigger time
         :param start:
         :param period:
         :return:
         """
-        self._last_trigger = start
+        self._last_trigger = start if start is not None else ticks_ms()
         if period is not None:
             self._period = period
 
-    def reset(self, start=ticks_ms(), period: int = None):
+    def reset(self, start=None, period: int = None):
         """
         Resets the timer. Use just before starting the events thread or if you want to restart the Timer
         :param start:
         :param period:
         :return:
         """
-        self._last_trigger = start
+        self._last_trigger = start if start is not None else ticks_ms()
         if period is not None:
             self._period = period
         self._triggered = False
+
+    def stop(self):
+        """
+        Stops the timer
+        :return:
+        """
+
+        self._stopped = True
+
+    def resume(self):
+        """
+        Resumes the timer
+        :return:
+        """
+        self._stopped = False
+
+    def get(self) -> int:
+        """
+        Returns the time passed since the last trigger in ms
+        :return:
+        """
+        return ticks_diff(ticks_ms(), self._last_trigger)
 
     def register_callback(self, event_name: str, callback: callable, args: tuple = None):
         """
@@ -1444,30 +1475,32 @@ class _ArduinoAlvikTimerEvents(_ArduinoAlvikEvents):
         self._callbacks = dict()
         super().register_callback(event_name, callback, args)
 
-    def _is_period_expired(self, now=ticks_ms()) -> bool:
+    def _is_period_expired(self, now=None) -> bool:
         """
         True if the timer period is expired
         :return:
         """
 
-        if ticks_diff(now, self._last_trigger) > self._period:
-            self._last_trigger = now
-            return True
+        if now is None:
+            now = ticks_ms()
+        return ticks_diff(now, self._last_trigger) > self._period
 
-        return False
-
-    def update_state(self, state):
+    def update_state(self, ticks):
         """
         Updates the internal state of the events handler and executes the related callback
         :return:
         """
 
         if list(self._callbacks.keys()) == [self.PERIODIC]:
-            if self._is_period_expired(state):
-                self.execute_callback(self.PERIODIC)
+            if self._is_period_expired(ticks):
+                self._last_trigger = ticks
+                if not self._stopped:
+                    self.execute_callback(self.PERIODIC)
         elif list(self._callbacks.keys()) == [self.ONE_SHOT] and not self._triggered:
-            if self._is_period_expired(state):
-                self.execute_callback(self.ONE_SHOT)
+            if self._is_period_expired(ticks):
+                self._last_trigger = ticks
+                if not self._stopped:
+                    self.execute_callback(self.ONE_SHOT)
                 self._triggered = True
 
 

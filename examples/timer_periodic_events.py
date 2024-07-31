@@ -21,12 +21,13 @@ def toggle_left_led(custom_text: str, val) -> None:
     :param val: a toggle signal generator
     :return:
     """
-    alvik.left_led.set_color(next(val), 0, 0)
-    print(f"RED BLINKS! {custom_text}")
+    led_val = next(val)
+    alvik.left_led.set_color(led_val, 0, 0)
+    print(f"RED {'ON' if led_val else 'OFF'}! {custom_text}")
 
 
 alvik = ArduinoAlvik()
-alvik.timer('periodic', 500, toggle_left_led, ("500 ms have passed...", toggle_value(), ))
+alvik.set_timer('periodic', 500, toggle_left_led, ("500 ms have passed...", toggle_value(), ))
 
 alvik.begin()
 
@@ -54,6 +55,12 @@ while True:
         sleep(2)
         print(f'Left wheel degs: {alvik.left_wheel.get_position()}')
         print(f'Right wheel degs: {alvik.right_wheel.get_position()}')
+
+        alvik.timer.reset(period=1000)
+        alvik.timer.stop()
+        for _ in range(0, 20):
+            print(f'.{alvik.timer._triggered}: {alvik.timer.get()}')
+            sleep(1)
 
     except KeyboardInterrupt as e:
         print('over')
