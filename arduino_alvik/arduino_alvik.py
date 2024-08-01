@@ -29,6 +29,9 @@ class ArduinoAlvik:
         self._packeter = ucPack(200)
         self.left_wheel = _ArduinoAlvikWheel(self._packeter, ord('L'))
         self.right_wheel = _ArduinoAlvikWheel(self._packeter, ord('R'))
+        self._servo_positions = list((None, None,))
+        self.servo_A = _ArduinoAlvikServo(self._packeter, 'A', 0, self._servo_positions)
+        self.servo_B = _ArduinoAlvikServo(self._packeter, 'B', 1, self._servo_positions)
         self._led_state = list((None,))
         self.left_led = self.DL1 = _ArduinoAlvikRgbLed(self._packeter, 'left', self._led_state,
                                                        rgb_mask=[0b00000100, 0b00001000, 0b00010000])
@@ -194,11 +197,10 @@ class ArduinoAlvik:
         self.set_illuminator(True)
         self.set_behaviour(1)
         self._set_color_reference()
-
         if self._has_events_registered():
             print('Starting events thread')
             self._start_events_thread()
-
+        self.set_servo_positions(0, 0)
         return 0
 
     def _has_events_registered(self) -> bool:
@@ -512,8 +514,18 @@ class ArduinoAlvik:
         :param b_position: position of B servomotor (0-180)
         :return:
         """
+        self._servo_positions[0] = a_position
+        self._servo_positions[1] = b_position
         self._packeter.packetC2B(ord('S'), a_position & 0xFF, b_position & 0xFF)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
+
+    def get_servo_positions(self) -> (int, int):
+        """
+        Returns the current servomotor positions
+        :return: position of A/B servomotor (0-180)
+        """
+
+        return self._servo_positions[0], self._servo_positions[1]
 
     def get_ack(self) -> str:
         """
@@ -1235,6 +1247,32 @@ class ArduinoAlvik:
         :return:
         """
         cls._events_thread_running = False
+
+
+class _ArduinoAlvikServo:
+
+    def __init__(self, packeter: ucPack, label: str, servo_id: int, position: list[int | None]):
+        self._packeter = packeter
+        self._label = label
+        self._id = servo_id
+        self._position = position
+
+    def set_position(self, position):
+        """
+        Sets the position of the servo
+        :param position:
+        :return:
+        """
+        self._position[self._id] = position
+        self._packeter.packetC2B(ord('S'), self._position[0] & 0xFF, self._position[1] & 0xFF)
+        uart.write(self._packeter.msg[0:self._packeter.msg_size])
+
+    def get_position(self) -> int:
+        """
+        Returns the position of the servo
+        :return:
+        """
+        return self._position[self._id]
 
 
 class _ArduinoAlvikWheel:
