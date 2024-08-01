@@ -1418,6 +1418,20 @@ class _ArduinoAlvikTimerEvents(_ArduinoAlvikEvents):
         self._stopped = False
         super().__init__()
 
+    def is_triggered(self):
+        """
+        Returns the trigger state
+        :return:
+        """
+        return self._triggered
+
+    def is_stopped(self):
+        """
+        Return True if timer is stopped
+        :return:
+        """
+        return self._stopped
+
     def set(self, start=None, period: int = None):
         """
         Sets the last trigger time
