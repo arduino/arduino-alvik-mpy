@@ -21,8 +21,9 @@ def toggle_left_led(custom_text: str, val) -> None:
     :param val: a toggle signal generator
     :return:
     """
-    alvik.left_led.set_color(next(val), 0, 0)
-    print(f"RED BLINKS! {custom_text}")
+    led_val = next(val)
+    alvik.left_led.set_color(led_val, 0, 0)
+    print(f"RED {'ON' if led_val else 'OFF'}! {custom_text}")
 
 
 def simple_print(custom_text: str = '') -> None:
