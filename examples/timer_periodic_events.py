@@ -59,7 +59,9 @@ while True:
         alvik.timer.reset(period=1000)
         alvik.timer.stop()
         for _ in range(0, 20):
-            print(f'.{alvik.timer._triggered}: {alvik.timer.get()}')
+            if _ == 5:
+                alvik.timer.resume()
+            print(f'TRIGGERED:{alvik.timer.is_triggered()} STOPPED:{alvik.timer.is_stopped()} TIME: {alvik.timer.get()}')
             sleep(1)
 
     except KeyboardInterrupt as e:

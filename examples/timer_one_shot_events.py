@@ -56,13 +56,13 @@ while True:
         print(f'Left wheel degs: {alvik.left_wheel.get_position()}')
         print(f'Right wheel degs: {alvik.right_wheel.get_position()}')
 
-        if alvik.timer._triggered:
+        if alvik.timer.is_triggered():
             alvik.timer.reset(period=1000)
             alvik.timer.stop()
             for _ in range(0, 10):
                 if _ == 2:
                     alvik.timer.resume()
-                print(f'TRIGGERED:{alvik.timer._triggered} STOPPED:{alvik.timer._stopped} TIME: {alvik.timer.get()}')
+                print(f'TRIGGERED:{alvik.timer.is_triggered()} STOPPED:{alvik.timer.is_stopped()} TIME: {alvik.timer.get()}')
                 sleep(1)
 
     except KeyboardInterrupt as e:
