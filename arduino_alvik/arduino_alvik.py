@@ -186,10 +186,9 @@ class ArduinoAlvik:
             sleep_ms(1000)
             self._idle(1000)
         self._begin_update_thread()
+
         sleep_ms(100)
-        if self._has_events_registered():
-            print('Starting events thread')
-            self._start_events_thread()
+
         self._reset_hw()
         self._flush_uart()
         self._snake_robot(1000)
@@ -198,6 +197,9 @@ class ArduinoAlvik:
         self.set_illuminator(True)
         self.set_behaviour(1)
         self._set_color_reference()
+        if self._has_events_registered():
+            print('Starting events thread')
+            self._start_events_thread()
         self.set_servo_positions(0, 0)
         return 0
 
@@ -1062,7 +1064,7 @@ class ArduinoAlvik:
         print(f'LINEAR VEL: {self._linear_velocity}')
         print(f'ANGULAR VEL: {self._angular_velocity}')
 
-    def timer(self, mode: str, period: int, callback: callable, args: tuple = ()) -> None:
+    def set_timer(self, mode: str, period: int, callback: callable, args: tuple = ()) -> None:
         """
         Register a timer callback
         :param mode: _ArduinoAlvikTimerEvents.PERIODIC or .ONE_SHOT
@@ -1074,6 +1076,14 @@ class ArduinoAlvik:
 
         self._timer_events = _ArduinoAlvikTimerEvents(period)
         self._timer_events.register_callback(mode, callback, args)
+
+    @property
+    def timer(self):
+        """
+        Gives access to the timer object
+        :return:
+        """
+        return self._timer_events
 
     def on_touch_ok_pressed(self, callback: callable, args: tuple = ()) -> None:
         """
@@ -1208,6 +1218,8 @@ class ArduinoAlvik:
         """
         if not self.__class__._events_thread_running:
             self.__class__._events_thread_running = True
+            self._timer_events.reset()                                     # resets the timer before starting
+            self._move_events.reset(_ArduinoAlvikMoveEvents.NZ_TILT)       # resets the orientation to -Z tilted
             self.__class__._events_thread_id = _thread.start_new_thread(self._update_events, (50,))
 
     def _update_events(self, delay_: int = 100):
@@ -1441,7 +1453,67 @@ class _ArduinoAlvikTimerEvents(_ArduinoAlvikEvents):
         self._last_trigger = ticks_ms()
         self._period = period
         self._triggered = False
+        self._stopped = False
         super().__init__()
+
+    def is_triggered(self):
+        """
+        Returns the trigger state
+        :return:
+        """
+        return self._triggered
+
+    def is_stopped(self):
+        """
+        Return True if timer is stopped
+        :return:
+        """
+        return self._stopped
+
+    def set(self, start=None, period: int = None):
+        """
+        Sets the last trigger time
+        :param start:
+        :param period:
+        :return:
+        """
+        self._last_trigger = start if start is not None else ticks_ms()
+        if period is not None:
+            self._period = period
+
+    def reset(self, start=None, period: int = None):
+        """
+        Resets the timer. Use just before starting the events thread or if you want to restart the Timer
+        :param start:
+        :param period:
+        :return:
+        """
+        self._last_trigger = start if start is not None else ticks_ms()
+        if period is not None:
+            self._period = period
+        self._triggered = False
+
+    def stop(self):
+        """
+        Stops the timer
+        :return:
+        """
+
+        self._stopped = True
+
+    def resume(self):
+        """
+        Resumes the timer
+        :return:
+        """
+        self._stopped = False
+
+    def get(self) -> int:
+        """
+        Returns the time passed since the last trigger in ms
+        :return:
+        """
+        return ticks_diff(ticks_ms(), self._last_trigger)
 
     def register_callback(self, event_name: str, callback: callable, args: tuple = None):
         """
@@ -1455,30 +1527,32 @@ class _ArduinoAlvikTimerEvents(_ArduinoAlvikEvents):
         self._callbacks = dict()
         super().register_callback(event_name, callback, args)
 
-    def _is_period_expired(self, now=ticks_ms()) -> bool:
+    def _is_period_expired(self, now=None) -> bool:
         """
         True if the timer period is expired
         :return:
         """
 
-        if ticks_diff(now, self._last_trigger) > self._period:
-            self._last_trigger = now
-            return True
+        if now is None:
+            now = ticks_ms()
+        return ticks_diff(now, self._last_trigger) > self._period
 
-        return False
-
-    def update_state(self, state):
+    def update_state(self, ticks):
         """
         Updates the internal state of the events handler and executes the related callback
         :return:
         """
 
         if list(self._callbacks.keys()) == [self.PERIODIC]:
-            if self._is_period_expired(state):
-                self.execute_callback(self.PERIODIC)
+            if self._is_period_expired(ticks):
+                self._last_trigger = ticks
+                if not self._stopped:
+                    self.execute_callback(self.PERIODIC)
         elif list(self._callbacks.keys()) == [self.ONE_SHOT] and not self._triggered:
-            if self._is_period_expired(state):
-                self.execute_callback(self.ONE_SHOT)
+            if self._is_period_expired(ticks):
+                self._last_trigger = ticks
+                if not self._stopped:
+                    self.execute_callback(self.ONE_SHOT)
                 self._triggered = True
 
 
@@ -1608,9 +1682,19 @@ class _ArduinoAlvikMoveEvents(_ArduinoAlvikEvents):
     available_events = ['on_shake', 'on_x_tilt', 'on_y_tilt', 'on_z_tilt',
                         'on_nx_tilt', 'on_ny_tilt', 'on_nz_tilt']
 
+    NZ_TILT = 0x80
+
     def __init__(self):
         self._current_state = 0
         super().__init__()
+
+    def reset(self, state: int = 0x00):
+        """
+        Sets the initial state
+        :param state:
+        :return:
+        """
+        self._current_state = state
 
     @staticmethod
     def _is_shaken(current_state, new_state) -> bool:
