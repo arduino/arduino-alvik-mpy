@@ -26,6 +26,7 @@ class ArduinoAlvik:
         return cls._instance
 
     def __init__(self):
+        self.i2c = _ArduinoAlvikI2C(A4, A5)
         self._packeter = ucPack(200)
         self.left_wheel = _ArduinoAlvikWheel(self._packeter, ord('L'))
         self.right_wheel = _ArduinoAlvikWheel(self._packeter, ord('R'))
@@ -100,36 +101,42 @@ class ArduinoAlvik:
         word = marks_str + f" {percentage}% \t"
         sys.stdout.write(bytes((word.encode('utf-8'))))
 
-    def _idle(self, delay_=1, check_on_thread=False) -> None:
+    def _lenghty_op(self, iterations=10000000) -> int:
+        result = 0
+        for i in range(1, iterations):
+            result += i * i
+        return result
+
+    def _idle(self, delay_=1, check_on_thread=False, blocking=False) -> None:
         """
         Alvik's idle mode behaviour
         :return:
         """
-
         NANO_CHK.value(1)
-        sleep_ms(500)
+        self.i2c._prio = True
+
+        if blocking:
+            self._lenghty_op(50000)
+        else:
+            sleep_ms(500)
         led_val = 0
 
         try:
             while not self.is_on():
                 if check_on_thread and not self.__class__._update_thread_running:
                     break
-                _ESP32_SDA = Pin(A4, Pin.OUT)
-                _ESP32_SCL = Pin(A5, Pin.OUT)
-                _ESP32_SCL.value(1)
-                _ESP32_SDA.value(1)
-                sleep_ms(100)
-                _ESP32_SCL.value(0)
-                _ESP32_SDA.value(0)
 
                 cmd = bytearray(1)
                 cmd[0] = 0x06
-                i2c = I2C(0, scl=ESP32_SCL, sda=ESP32_SDA)
-                i2c.writeto(0x36, cmd)
-                soc_raw = struct.unpack('h', i2c.readfrom(0x36, 2))[0]
+                self.i2c.writeto(0x36, cmd, start=True, priority=True)
+
+                soc_raw = struct.unpack('h', self.i2c.readfrom(0x36, 2, priority=True))[0]
                 soc_perc = soc_raw * 0.00390625
                 self._progress_bar(round(soc_perc))
-                sleep_ms(delay_)
+                if blocking:
+                    self._lenghty_op(10000)
+                else:
+                    sleep_ms(delay_)
                 if soc_perc > 97:
                     LEDG.value(0)
                     LEDR.value(1)
@@ -137,6 +144,7 @@ class ArduinoAlvik:
                     LEDR.value(led_val)
                     LEDG.value(1)
                     led_val = (led_val + 1) % 2
+            self.i2c._prio = False
             print("********** Alvik is on **********")
         except KeyboardInterrupt:
             self.stop()
@@ -148,6 +156,7 @@ class ArduinoAlvik:
             LEDR.value(1)
             LEDG.value(1)
             NANO_CHK.value(0)
+            self.i2c._prio = False
 
     @staticmethod
     def _snake_robot(duration: int = 1000):
@@ -582,7 +591,7 @@ class ArduinoAlvik:
         while True:
             if not self.is_on():
                 print("Alvik is off")
-                self._idle(1000, check_on_thread=True)
+                self._idle(1000, check_on_thread=True, blocking=True)
                 self._reset_hw()
                 self._flush_uart()
                 sleep_ms(1000)
@@ -1247,6 +1256,64 @@ class ArduinoAlvik:
         :return:
         """
         cls._events_thread_running = False
+
+
+class _ArduinoAlvikI2C:
+
+    def __init__(self, sda: int, scl: int):
+        """
+        Alvik I2C wrapper
+        :param sda:
+        :param scl:
+        """
+        self._lock = _thread.allocate_lock()
+        self._prio = False
+        self.sda = sda
+        self.scl = scl
+
+    def _start(self):
+        """
+        Bitbanging start condition
+        :return:
+        """
+        _SDA = Pin(self.sda, Pin.OUT)
+        _SDA.value(1)
+        sleep_ms(100)
+        _SDA.value(0)
+
+    def scan(self, start=False, priority=False):
+        """
+        I2C scan method
+        :return:
+        """
+        if not priority and self._prio:
+            return []
+        with self._lock:
+            if start:
+                self._start()
+            i2c = I2C(0, scl=Pin(self.scl, Pin.OUT), sda=Pin(self.sda, Pin.OUT))
+            out = i2c.scan()
+        return out
+
+    def readfrom(self, addr, nbytes, stop=True, start=False, priority=False):
+        if not priority and self._prio:
+            return None
+        with self._lock:
+            if start:
+                self._start()
+            i2c = I2C(0, scl=Pin(self.scl, Pin.OUT), sda=Pin(self.sda, Pin.OUT))
+            out = i2c.readfrom(addr, nbytes, stop)
+        return out
+
+    def writeto(self, addr, buf, stop=True, start=False, priority=False):
+        if not priority and self._prio:
+            return None
+        with self._lock:
+            if start:
+                self._start()
+            i2c = I2C(0, scl=Pin(self.scl, Pin.OUT), sda=Pin(self.sda, Pin.OUT))
+            out = i2c.writeto(addr, buf, stop)
+        return out
 
 
 class _ArduinoAlvikServo:
