@@ -130,7 +130,7 @@ class ArduinoAlvik:
                 cmd = bytearray(1)
                 cmd[0] = 0x06
 
-                self.i2c._start()
+                self.i2c.start()
                 self.i2c.writeto(0x36, cmd)
 
                 soc_raw = struct.unpack('h', self.i2c.readfrom(0x36, 2))[0]
@@ -1302,7 +1302,7 @@ class _ArduinoAlvikI2C:
         """
         return not self._is_single_thread or _thread.get_ident() == self.__class__._main_thread_id
 
-    def _start(self):
+    def start(self):
         """
         Bitbanging start condition
         :return:
@@ -1312,7 +1312,28 @@ class _ArduinoAlvikI2C:
         sleep_ms(100)
         _SDA.value(0)
 
-    def scan(self):
+    def init(self, scl, sda, freq=400_000) -> None:
+        """
+        init method just for call compatibility
+        """
+        print("AlvikWarning:: init Unsupported. Alvik defines/initializes its own I2C bus")
+
+    def deinit(self):
+        """
+        deinit method just for call compatibility
+        """
+        print("AlvikWarning:: deinit Unsupported. Alvik defines/initializes its own I2C bus")
+
+    def stop(self):
+        """ Bitbanging stop condition (untested)
+        :return:
+        """
+        _SDA = Pin(self.sda, Pin.OUT)
+        _SDA.value(0)
+        sleep_ms(100)
+        _SDA.value(1)
+
+    def scan(self) -> list[int]:
         """
         I2C scan method
         :return:
@@ -1321,24 +1342,98 @@ class _ArduinoAlvikI2C:
             return []
         with self._lock:
             i2c = I2C(0, scl=Pin(self.scl, Pin.OUT), sda=Pin(self.sda, Pin.OUT))
-            out = i2c.scan()
-        return out
+            return i2c.scan()
 
-    def readfrom(self, addr, nbytes, stop=True):
+    def readfrom(self, addr, nbytes, stop=True) -> bytes:
+        """
+        Wrapping i2c readfrom
+        """
         if not self.is_accessible():
             return bytes(nbytes)
         with self._lock:
             i2c = I2C(0, scl=Pin(self.scl, Pin.OUT), sda=Pin(self.sda, Pin.OUT))
-            out = i2c.readfrom(addr, nbytes, stop)
-        return out
+            return i2c.readfrom(addr, nbytes, stop)
 
-    def writeto(self, addr, buf, stop=True):
+    def writeto(self, addr, buf, stop=True) -> int:
+        """
+        Wrapping i2c writeto
+        """
         if not self.is_accessible():
-            return None
+            return 0
         with self._lock:
             i2c = I2C(0, scl=Pin(self.scl, Pin.OUT), sda=Pin(self.sda, Pin.OUT))
-            out = i2c.writeto(addr, buf, stop)
-        return out
+            return i2c.writeto(addr, buf, stop)
+
+    def readinto(self, buf, nack=True) -> None:
+        """
+        Wrapping i2c readinto
+        """
+        if not self.is_accessible():
+            return
+        with self._lock:
+            i2c = I2C(0, scl=Pin(self.scl, Pin.OUT), sda=Pin(self.sda, Pin.OUT))
+            return i2c.readinto(buf, nack)
+
+    def write(self, buf) -> int:
+        """
+        Wrapping i2c write
+        """
+        if not self.is_accessible():
+            return 0
+        with self._lock:
+            i2c = I2C(0, scl=Pin(self.scl, Pin.OUT), sda=Pin(self.sda, Pin.OUT))
+            return i2c.write(buf)
+
+    def readfrom_into(self, addr, buf, stop=True) -> None:
+        """
+        Wrapping i2c readfrom_into
+        """
+        if not self.is_accessible():
+            return
+        with self._lock:
+            i2c = I2C(0, scl=Pin(self.scl, Pin.OUT), sda=Pin(self.sda, Pin.OUT))
+            return i2c.readfrom_into(addr, buf, stop)
+
+    def writevto(self, addr, vector, stop=True) -> int:
+        """
+        Wrapping i2c writevto
+        """
+        if not self.is_accessible():
+            return 0
+        with self._lock:
+            i2c = I2C(0, scl=Pin(self.scl, Pin.OUT), sda=Pin(self.sda, Pin.OUT))
+            return i2c.writevto(addr, vector, stop)
+
+    def readfrom_mem(self, addr, memaddr, nbytes, addrsize=8) -> bytes:
+        """
+        Wrapping i2c readfrom_mem
+        """
+        if not self.is_accessible():
+            return bytes(nbytes)
+        with self._lock:
+            i2c = I2C(0, scl=Pin(self.scl, Pin.OUT), sda=Pin(self.sda, Pin.OUT))
+            return i2c.readfrom_mem(addr, memaddr, nbytes, addrsize=addrsize)
+
+    def readfrom_mem_into(self, addr, memaddr, buf, addrsize=8) -> None:
+        """
+        Wrapping i2c readfrom_mem_into
+        """
+        if not self.is_accessible():
+            return
+        with self._lock:
+            i2c = I2C(0, scl=Pin(self.scl, Pin.OUT), sda=Pin(self.sda, Pin.OUT))
+            return i2c.readfrom_mem_into(addr, memaddr, buf, addrsize=addrsize)
+
+    def writeto_mem(self, addr, memaddr, buf, addrsize=8) -> None:
+        """
+        Wrapping i2c writeto_mem
+        """
+        if not self.is_accessible():
+            return
+        with self._lock:
+            i2c = I2C(0, scl=Pin(self.scl, Pin.OUT), sda=Pin(self.sda, Pin.OUT))
+            return i2c.writeto_mem(addr, memaddr, buf, addrsize=addrsize)
+
 
 
 class _ArduinoAlvikServo:
