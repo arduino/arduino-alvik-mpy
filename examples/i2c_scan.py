@@ -15,6 +15,6 @@ while True:
   else:
     print("\nList of devices")
     for o in out:
-      print(o)
-  print(alvik.get_distance())
+      print(hex(o))
+
   sleep_ms(100)

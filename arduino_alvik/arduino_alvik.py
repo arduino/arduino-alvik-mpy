@@ -113,7 +113,7 @@ class ArduinoAlvik:
         :return:
         """
         NANO_CHK.value(1)
-        self.i2c._prio = True
+        self.i2c.set_single_thread(True)
 
         if blocking:
             self._lenghty_op(50000)
@@ -123,14 +123,15 @@ class ArduinoAlvik:
 
         try:
             while not self.is_on():
+
                 if check_on_thread and not self.__class__._update_thread_running:
                     break
 
                 cmd = bytearray(1)
                 cmd[0] = 0x06
-                self.i2c.writeto(0x36, cmd, start=True, priority=True)
+                self.i2c.writeto(0x36, cmd, start=True)
 
-                soc_raw = struct.unpack('h', self.i2c.readfrom(0x36, 2, priority=True))[0]
+                soc_raw = struct.unpack('h', self.i2c.readfrom(0x36, 2))[0]
                 soc_perc = soc_raw * 0.00390625
                 self._progress_bar(round(soc_perc))
                 if blocking:
@@ -144,19 +145,19 @@ class ArduinoAlvik:
                     LEDR.value(led_val)
                     LEDG.value(1)
                     led_val = (led_val + 1) % 2
-            self.i2c._prio = False
+            self.i2c.set_single_thread(False)
             print("********** Alvik is on **********")
         except KeyboardInterrupt:
             self.stop()
             sys.exit()
         except Exception as e:
             pass
-            # print(f'Unable to read SOC: {e}')
+            print(f'Unable to read SOC: {e}')
         finally:
             LEDR.value(1)
             LEDG.value(1)
             NANO_CHK.value(0)
-            self.i2c._prio = False
+            self.i2c.set_single_thread(False)
 
     @staticmethod
     def _snake_robot(duration: int = 1000):
@@ -193,7 +194,8 @@ class ArduinoAlvik:
         if not self.is_on():
             print("\n********** Please turn on your Arduino Alvik! **********\n")
             sleep_ms(1000)
-            self._idle(1000)
+            self.i2c.set_main_thread(_thread.get_ident())
+            self._idle(1000, blocking=True)
         self._begin_update_thread()
 
         sleep_ms(100)
@@ -588,6 +590,9 @@ class ArduinoAlvik:
         :param delay_: while loop delay (ms)
         :return:
         """
+
+        self.i2c.set_main_thread(_thread.get_ident())
+
         while True:
             if not self.is_on():
                 print("Alvik is off")
@@ -1260,6 +1265,8 @@ class ArduinoAlvik:
 
 class _ArduinoAlvikI2C:
 
+    _main_thread_id = None
+
     def __init__(self, sda: int, scl: int):
         """
         Alvik I2C wrapper
@@ -1267,9 +1274,32 @@ class _ArduinoAlvikI2C:
         :param scl:
         """
         self._lock = _thread.allocate_lock()
-        self._prio = False
+
+        self._is_single_thread = False
+
         self.sda = sda
         self.scl = scl
+
+    def set_main_thread(self, thread_id: int):
+        """
+        Sets the main thread of control. It will be the only thread allowed if set_single_thread is True
+        """
+        with self._lock:
+            print(f"Setting I2C main thread to: {thread_id}")
+            self.__class__._main_thread_id = thread_id
+
+    def set_single_thread(self, value):
+        """
+        Sets the single thread mode on/off.
+        In single mode only the main thread is allowed to access the bus
+        """
+        self._is_single_thread = value
+
+    def is_accessible(self):
+        """
+        Returns True if bus is accessible by the current thread
+        """
+        return not self._is_single_thread or _thread.get_ident() == self.__class__._main_thread_id
 
     def _start(self):
         """
@@ -1281,12 +1311,12 @@ class _ArduinoAlvikI2C:
         sleep_ms(100)
         _SDA.value(0)
 
-    def scan(self, start=False, priority=False):
+    def scan(self, start=False):
         """
         I2C scan method
         :return:
         """
-        if not priority and self._prio:
+        if not self.is_accessible():
             return []
         with self._lock:
             if start:
@@ -1295,9 +1325,9 @@ class _ArduinoAlvikI2C:
             out = i2c.scan()
         return out
 
-    def readfrom(self, addr, nbytes, stop=True, start=False, priority=False):
-        if not priority and self._prio:
-            return None
+    def readfrom(self, addr, nbytes, stop=True, start=False):
+        if not self.is_accessible():
+            return bytes(nbytes)
         with self._lock:
             if start:
                 self._start()
@@ -1305,8 +1335,8 @@ class _ArduinoAlvikI2C:
             out = i2c.readfrom(addr, nbytes, stop)
         return out
 
-    def writeto(self, addr, buf, stop=True, start=False, priority=False):
-        if not priority and self._prio:
+    def writeto(self, addr, buf, stop=True, start=False):
+        if not self.is_accessible():
             return None
         with self._lock:
             if start:
