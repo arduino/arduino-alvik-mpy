@@ -148,7 +148,8 @@ class ArduinoAlvik:
                     LEDG.value(1)
                     led_val = (led_val + 1) % 2
             self.i2c.set_single_thread(False)
-            print("********** Alvik is on **********")
+            if self.is_on():
+                print("********** Alvik is on **********")
         except KeyboardInterrupt:
             self.stop()
             sys.exit()
@@ -197,7 +198,7 @@ class ArduinoAlvik:
             print("\n********** Please turn on your Arduino Alvik! **********\n")
             sleep_ms(1000)
             self.i2c.set_main_thread(_thread.get_ident())
-            self._idle(1000, blocking=True)
+            self._idle(1000)
         self._begin_update_thread()
 
         sleep_ms(100)
@@ -598,7 +599,7 @@ class ArduinoAlvik:
         while True:
             if not self.is_on():
                 print("Alvik is off")
-                self._idle(1000, check_on_thread=True, blocking=True)
+                self._idle(1000, check_on_thread=True)
                 self._reset_hw()
                 self._flush_uart()
                 sleep_ms(1000)
