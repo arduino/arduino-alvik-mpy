@@ -129,7 +129,9 @@ class ArduinoAlvik:
 
                 cmd = bytearray(1)
                 cmd[0] = 0x06
-                self.i2c.writeto(0x36, cmd, start=True)
+
+                self.i2c._start()
+                self.i2c.writeto(0x36, cmd)
 
                 soc_raw = struct.unpack('h', self.i2c.readfrom(0x36, 2))[0]
                 soc_perc = soc_raw * 0.00390625
@@ -1285,7 +1287,6 @@ class _ArduinoAlvikI2C:
         Sets the main thread of control. It will be the only thread allowed if set_single_thread is True
         """
         with self._lock:
-            print(f"Setting I2C main thread to: {thread_id}")
             self.__class__._main_thread_id = thread_id
 
     def set_single_thread(self, value):
@@ -1311,7 +1312,7 @@ class _ArduinoAlvikI2C:
         sleep_ms(100)
         _SDA.value(0)
 
-    def scan(self, start=False):
+    def scan(self):
         """
         I2C scan method
         :return:
@@ -1319,28 +1320,22 @@ class _ArduinoAlvikI2C:
         if not self.is_accessible():
             return []
         with self._lock:
-            if start:
-                self._start()
             i2c = I2C(0, scl=Pin(self.scl, Pin.OUT), sda=Pin(self.sda, Pin.OUT))
             out = i2c.scan()
         return out
 
-    def readfrom(self, addr, nbytes, stop=True, start=False):
+    def readfrom(self, addr, nbytes, stop=True):
         if not self.is_accessible():
             return bytes(nbytes)
         with self._lock:
-            if start:
-                self._start()
             i2c = I2C(0, scl=Pin(self.scl, Pin.OUT), sda=Pin(self.sda, Pin.OUT))
             out = i2c.readfrom(addr, nbytes, stop)
         return out
 
-    def writeto(self, addr, buf, stop=True, start=False):
+    def writeto(self, addr, buf, stop=True):
         if not self.is_accessible():
             return None
         with self._lock:
-            if start:
-                self._start()
             i2c = I2C(0, scl=Pin(self.scl, Pin.OUT), sda=Pin(self.sda, Pin.OUT))
             out = i2c.writeto(addr, buf, stop)
         return out
