@@ -27,8 +27,8 @@ class ArduinoAlvik:
 
     def __init__(self):
         self._packeter = ucPack(200)
-        self.left_wheel = _ArduinoAlvikWheel(self._packeter, ord('L'))
-        self.right_wheel = _ArduinoAlvikWheel(self._packeter, ord('R'))
+        self.left_wheel = _ArduinoAlvikWheel(self._packeter, ord('L'), alvik=self)
+        self.right_wheel = _ArduinoAlvikWheel(self._packeter, ord('R'), alvik=self)
         self._servo_positions = list((None, None,))
         self.servo_A = _ArduinoAlvikServo(self._packeter, 'A', 0, self._servo_positions)
         self.servo_B = _ArduinoAlvikServo(self._packeter, 'B', 1, self._servo_positions)
@@ -380,17 +380,22 @@ class ArduinoAlvik:
         self._packeter.packetC2F(ord('J'), left_speed, right_speed)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
 
-    def set_wheels_position(self, left_angle: float, right_angle: float, unit: str = 'deg'):
+    def set_wheels_position(self, left_angle: float, right_angle: float, unit: str = 'deg', blocking: bool = True):
         """
         Sets left/right motor angle
         :param left_angle:
         :param right_angle:
         :param unit: the speed unit of measurement (default: 'rpm')
+        :param blocking:
         :return:
         """
-        self._packeter.packetC2F(ord('A'), convert_angle(left_angle, unit, 'deg'),
-                                 convert_angle(right_angle, unit, 'deg'))
+        left_angle = convert_angle(left_angle, unit, 'deg')
+        right_angle = convert_angle(right_angle, unit, 'deg')
+        self._packeter.packetC2F(ord('A'), left_angle, right_angle)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
+        self._waiting_ack = ord('P')
+        if blocking:
+            self._wait_for_target(idle_time=(max(left_angle, right_angle) / MOTOR_CONTROL_DEG_S))
 
     def get_wheels_position(self, unit: str = 'deg') -> (float | None, float | None):
         """
@@ -1277,12 +1282,14 @@ class _ArduinoAlvikServo:
 
 class _ArduinoAlvikWheel:
 
-    def __init__(self, packeter: ucPack, label: int, wheel_diameter_mm: float = WHEEL_DIAMETER_MM):
+    def __init__(self, packeter: ucPack, label: int, wheel_diameter_mm: float = WHEEL_DIAMETER_MM,
+                 alvik: ArduinoAlvik = None):
         self._packeter = packeter
         self._label = label
         self._wheel_diameter_mm = wheel_diameter_mm
         self._speed = None
         self._position = None
+        self._alvik = alvik
 
     def reset(self, initial_position: float = 0.0, unit: str = 'deg'):
         """
@@ -1350,16 +1357,27 @@ class _ArduinoAlvikWheel:
         """
         return convert_angle(self._position, 'deg', unit)
 
-    def set_position(self, position: float, unit: str = 'deg'):
+    def set_position(self, position: float, unit: str = 'deg', blocking: bool = True):
         """
         Sets left/right motor speed
-        :param position: the speed of the motor
+        :param position: the position of the motor
         :param unit: the unit of measurement
+        :param blocking:
         :return:
         """
-        self._packeter.packetC2B1F(ord('W'), self._label & 0xFF, ord('P'),
-                                   convert_angle(position, unit, 'deg'))
+        position = convert_angle(position, unit, 'deg')
+        self._packeter.packetC2B1F(ord('W'), self._label & 0xFF, ord('P'), position)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
+        self._alvik._waiting_ack = ord('P')
+        if blocking:
+            self._alvik._wait_for_target(idle_time=(position / MOTOR_CONTROL_DEG_S))
+
+    def is_target_reached(self):
+        """
+        Checks if the target position is reached
+        :return:
+        """
+        return self._alvik.is_target_reached()
 
 
 class _ArduinoAlvikRgbLed:
