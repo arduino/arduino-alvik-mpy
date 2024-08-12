@@ -41,25 +41,25 @@ while True:
         alvik.set_wheels_position(90, 90, blocking=False)
         while not alvik.is_target_reached():
             alvik.left_led.set_color(1, 0, 0)
-            sleep_ms(500)
+            sleep_ms(200)
             alvik.left_led.set_color(0, 0, 0)
-            sleep_ms(500)
-        print(f'Wheels position reached: R{alvik.right_wheel.get_position()} L:{alvik.left_wheel.get_position()}')
+            sleep_ms(200)
+        print(f'Wheels position reached: R:{alvik.right_wheel.get_position()} L:{alvik.left_wheel.get_position()}')
 
-        alvik.left_wheel.set_position(180)
+        alvik.left_wheel.set_position(180, blocking=False)
         while not alvik.left_wheel.is_target_reached():
             alvik.left_led.set_color(1, 0, 0)
-            sleep_ms(500)
+            sleep_ms(200)
             alvik.left_led.set_color(0, 0, 0)
-            sleep_ms(500)
+            sleep_ms(200)
         print(f'Left wheel position reached: {alvik.left_wheel.get_position()}')
 
-        alvik.right_wheel.set_position(180)
+        alvik.right_wheel.set_position(180, blocking=False)
         while not alvik.right_wheel.is_target_reached():
             alvik.right_led.set_color(1, 0, 0)
-            sleep_ms(500)
+            sleep_ms(200)
             alvik.right_led.set_color(0, 0, 0)
-            sleep_ms(500)
+            sleep_ms(200)
         print(f'Left wheel position reached: {alvik.right_wheel.get_position()}')
 
     except KeyboardInterrupt as e:
