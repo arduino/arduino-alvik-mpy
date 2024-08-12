@@ -135,6 +135,7 @@ class ArduinoAlvik:
 
                 soc_raw = struct.unpack('h', self.i2c.readfrom(0x36, 2))[0]
                 soc_perc = soc_raw * 0.00390625
+                self._battery_perc = soc_perc
                 self._progress_bar(round(soc_perc))
                 if blocking:
                     self._lenghty_op(10000)
