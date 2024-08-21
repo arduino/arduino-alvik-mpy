@@ -214,7 +214,7 @@ class ArduinoAlvik:
         self._snake_robot(1000)
         self._wait_for_ack()
         if not self._wait_for_fw_check():
-            print('\n********** PLEASE UPDATE ALVIK FIRMWARE! Check documentation **********\n')
+            print('\n********** PLEASE UPDATE ALVIK FIRMWARE (required: '+'.'.join(map(str,self._required_fw_version))+')! Check documentation **********\n')
             sys.exit(-2)
         self._snake_robot(2000)
         self.set_illuminator(True)
