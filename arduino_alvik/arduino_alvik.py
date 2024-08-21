@@ -13,6 +13,9 @@ from .pinout_definitions import *
 from .robot_definitions import *
 from .constants import *
 
+from .__init__ import __version__
+from .__init__ import __required_firmware_version__
+
 
 class ArduinoAlvik:
     _update_thread_running = False
@@ -73,7 +76,9 @@ class ArduinoAlvik:
         self._angular_velocity = None
         self._last_ack = None
         self._waiting_ack = None
-        self._version = [None, None, None]
+        self._version = list(map(int, __version__.split('.')))
+        self._fw_version = [None, None, None]
+        self._required_fw_version = list(map(int, __required_firmware_version__.split('.')))
         self._touch_events = _ArduinoAlvikTouchEvents()
         self._move_events = _ArduinoAlvikMoveEvents()
         self._timer_events = _ArduinoAlvikTimerEvents(-1)
@@ -208,6 +213,9 @@ class ArduinoAlvik:
         self._flush_uart()
         self._snake_robot(1000)
         self._wait_for_ack()
+        if not self._wait_for_fw_check():
+            print('\n********** PLEASE UPDATE ALVIK FIRMWARE! Check documentation **********\n')
+            sys.exit(-2)
         self._snake_robot(2000)
         self.set_illuminator(True)
         self.set_behaviour(1)
@@ -240,6 +248,18 @@ class ArduinoAlvik:
         while self._last_ack != 0x00:
             sleep_ms(20)
         self._waiting_ack = None
+
+    def _wait_for_fw_check(self) -> bool:
+        """
+        Waits until receives version from robot, check required version and return true if everything is ok
+        :return:
+        """
+        while self._fw_version == [None, None, None]:
+            sleep_ms(20)
+        if self.check_firmware_compatibility():
+            return True
+        else:
+            return False
 
     @staticmethod
     def _flush_uart():
@@ -689,7 +709,7 @@ class ArduinoAlvik:
             _, self._x, self._y, self._theta = self._packeter.unpacketC3F()
         elif code == 0x7E:
             # firmware version
-            _, *self._version = self._packeter.unpacketC3B()
+            _, *self._fw_version = self._packeter.unpacketC3B()
         else:
             return -1
 
@@ -1053,12 +1073,46 @@ class ArduinoAlvik:
         """
         return convert_distance(self._bottom_tof, 'mm', unit)
 
-    def get_version(self) -> str:
+    def get_version(self, version: str = 'fw') -> str:
         """
-        Returns the firmware version of the Alvik
+        Returns the version of the Alvik firmware or micropython library
+        :param version:
+        :return:
+        """
+        if version == 'fw' or version == 'FW' or version == 'firmware':
+            return self.get_fw_version()
+        elif version == 'lib' or version == 'LIB':
+            return self.get_lib_version()
+        else:
+            return f'{None, None, None}'
+
+    def get_lib_version(self) -> str:
+        """
+        Returns the micropython library version of the Alvik
         :return:
         """
         return f'{self._version[0]}.{self._version[1]}.{self._version[2]}'
+    
+    def get_fw_version(self) -> str:
+        """
+        Returns the firmware version of the Alvik Carrier
+        :return:
+        """
+        return f'{self._fw_version[0]}.{self._fw_version[1]}.{self._fw_version[2]}'
+    
+    def get_required_fw_version(self) -> str:
+        """
+        Returns the required firmware version of the Alvik Carrier for this micropython library
+        :return:
+        """
+        return f'{self._required_fw_version[0]}.{self._required_fw_version[1]}.{self._required_fw_version[2]}'
+    
+    def check_firmware_compatibility(self) -> bool:
+        """
+        Returns true if the library and the firmware are compatible
+        :return:
+        """
+        return self._fw_version == self._required_fw_version
 
     def print_status(self):
         """
@@ -1066,7 +1120,9 @@ class ArduinoAlvik:
         :return:
         """
         print('---ALVIK STATUS---')
-        print(f'VERSION: {self._version}')
+        print(f'LIBRARY VERSION: {self._version}')
+        print(f'REQUIRED FW VERSION: {self._required_fw_version}')
+        print(f'FIRMWARE VERSION: {self._fw_version}')
 
         print('---SENSORS---')
         print(f'TOF: T:{self._top_tof} B:{self._bottom_tof} L:{self._left_tof} CL:{self._center_left_tof}' +
