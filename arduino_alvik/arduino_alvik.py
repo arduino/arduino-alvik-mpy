@@ -223,7 +223,7 @@ class ArduinoAlvik:
         if self._has_events_registered():
             print('Starting events thread')
             self._start_events_thread()
-        self.set_servo_positions(0, 0)
+        self.set_servo_positions(90, 90)
         return 0
 
     def _has_events_registered(self) -> bool:
