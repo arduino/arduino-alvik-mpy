@@ -733,6 +733,13 @@ class ArduinoAlvik:
             return 100
         return round(self._battery_perc)
 
+    def is_battery_charging(self) -> bool:
+        """
+        Returns True if the device battery is charging
+        :return:
+        """
+        return self._battery_is_charging
+
     @property
     def _touch_bits(self) -> int:
         """
