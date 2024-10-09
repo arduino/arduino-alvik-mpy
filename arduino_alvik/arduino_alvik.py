@@ -42,6 +42,7 @@ class ArduinoAlvik:
         self.right_led = self.DL2 = _ArduinoAlvikRgbLed(self._packeter, 'right', self._led_state,
                                                         rgb_mask=[0b00100000, 0b01000000, 0b10000000])
         self._battery_perc = None
+        self._battery_is_charging = None
         self._touch_byte = None
         self._move_byte = None
         self._behaviour = None
@@ -92,10 +93,11 @@ class ArduinoAlvik:
         return CHECK_STM32.value() == 1
 
     @staticmethod
-    def _progress_bar(percentage: float) -> None:
+    def _print_battery_status(percentage: float, is_charging) -> None:
         """
-        Prints a progressbar
-        :param percentage:
+        Pretty prints the battery status
+        :param percentage: SOC of the battery
+        :param is_charging: True if the battery is charging
         :return:
         """
         sys.stdout.write(bytes('\r'.encode('utf-8')))
@@ -103,7 +105,8 @@ class ArduinoAlvik:
             marks_str = ' \U0001F50B'
         else:
             marks_str = ' \U0001FAAB'
-        word = marks_str + f" {percentage}% \t"
+        charging_str = f' \U0001F50C' if is_charging else ' \U000026A0WARNING: battery is discharging!'
+        word = marks_str + f" {percentage}%" + charging_str + " \t"
         sys.stdout.write(bytes((word.encode('utf-8'))))
 
     def _lenghty_op(self, iterations=10000000) -> int:
@@ -140,8 +143,9 @@ class ArduinoAlvik:
 
                 soc_raw = struct.unpack('h', self.i2c.readfrom(0x36, 2))[0]
                 soc_perc = soc_raw * 0.00390625
-                self._battery_perc = soc_perc
-                self._progress_bar(round(soc_perc))
+                self._battery_is_charging = soc_perc > 0
+                self._battery_perc = abs(soc_perc)
+                self._print_battery_status(round(soc_perc), self._battery_is_charging)
                 if blocking:
                     self._lenghty_op(10000)
                 else:
@@ -671,7 +675,9 @@ class ArduinoAlvik:
             _, self._ax, self._ay, self._az, self._gx, self._gy, self._gz = self._packeter.unpacketC6F()
         elif code == ord('p'):
             # battery percentage
-            _, self._battery_perc = self._packeter.unpacketC1F()
+            _, battery_perc = self._packeter.unpacketC1F()
+            self._battery_is_charging = battery_perc > 0
+            self._battery_perc = abs(battery_perc)
         elif code == ord('d'):
             # distance sensor
             _, self._left_tof, self._center_tof, self._right_tof = self._packeter.unpacketC3I()
