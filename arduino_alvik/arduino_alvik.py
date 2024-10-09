@@ -223,6 +223,7 @@ class ArduinoAlvik:
         self._snake_robot(2000)
         self.set_illuminator(True)
         self.set_behaviour(1)
+        self.set_behaviour(2)
         self._set_color_reference()
         if self._has_events_registered():
             print('Starting events thread')
