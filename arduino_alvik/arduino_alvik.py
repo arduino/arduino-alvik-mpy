@@ -638,6 +638,7 @@ class ArduinoAlvik:
                 sleep_ms(2000)
                 self.set_illuminator(True)
                 self.set_behaviour(1)
+                self.set_behaviour(2)
             if not ArduinoAlvik._update_thread_running:
                 break
             if self._read_message():
