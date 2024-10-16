@@ -9,7 +9,7 @@ speed = 0
 
 while True:
     try:
-        print(f'VER: {alvik.get_version()}')
+        print(f'FW VER: {alvik.get_fw_version()}')
         print(f'LSP: {alvik.left_wheel.get_speed()}')
         print(f'RSP: {alvik.right_wheel.get_speed()}')
         print(f'LPOS: {alvik.left_wheel.get_position()}')

@@ -13,12 +13,15 @@ from .pinout_definitions import *
 from .robot_definitions import *
 from .constants import *
 
+from .__init__ import __version__
+from .__init__ import __required_firmware_version__
+
 
 class ArduinoAlvik:
     _update_thread_running = False
     _update_thread_id = None
-    _touch_events_thread_running = False
-    _touch_events_thread_id = None
+    _events_thread_running = False
+    _events_thread_id = None
 
     def __new__(cls):
         if not hasattr(cls, '_instance'):
@@ -26,16 +29,22 @@ class ArduinoAlvik:
         return cls._instance
 
     def __init__(self):
+        self.i2c = _ArduinoAlvikI2C(A4, A5)
         self._packeter = ucPack(200)
-        self.left_wheel = _ArduinoAlvikWheel(self._packeter, ord('L'))
-        self.right_wheel = _ArduinoAlvikWheel(self._packeter, ord('R'))
+        self.left_wheel = _ArduinoAlvikWheel(self._packeter, ord('L'), alvik=self)
+        self.right_wheel = _ArduinoAlvikWheel(self._packeter, ord('R'), alvik=self)
+        self._servo_positions = list((None, None,))
+        self.servo_A = _ArduinoAlvikServo(self._packeter, 'A', 0, self._servo_positions)
+        self.servo_B = _ArduinoAlvikServo(self._packeter, 'B', 1, self._servo_positions)
         self._led_state = list((None,))
         self.left_led = self.DL1 = _ArduinoAlvikRgbLed(self._packeter, 'left', self._led_state,
                                                        rgb_mask=[0b00000100, 0b00001000, 0b00010000])
         self.right_led = self.DL2 = _ArduinoAlvikRgbLed(self._packeter, 'right', self._led_state,
                                                         rgb_mask=[0b00100000, 0b01000000, 0b10000000])
         self._battery_perc = None
+        self._battery_is_charging = None
         self._touch_byte = None
+        self._move_byte = None
         self._behaviour = None
         self._red = None
         self._green = None
@@ -68,8 +77,12 @@ class ArduinoAlvik:
         self._angular_velocity = None
         self._last_ack = None
         self._waiting_ack = None
-        self._version = [None, None, None]
+        self._version = list(map(int, __version__.split('.')))
+        self._fw_version = [None, None, None]
+        self._required_fw_version = list(map(int, __required_firmware_version__.split('.')))
         self._touch_events = _ArduinoAlvikTouchEvents()
+        self._move_events = _ArduinoAlvikMoveEvents()
+        self._timer_events = _ArduinoAlvikTimerEvents(-1)
 
     @staticmethod
     def is_on() -> bool:
@@ -80,10 +93,11 @@ class ArduinoAlvik:
         return CHECK_STM32.value() == 1
 
     @staticmethod
-    def _progress_bar(percentage: float) -> None:
+    def _print_battery_status(percentage: float, is_charging) -> None:
         """
-        Prints a progressbar
-        :param percentage:
+        Pretty prints the battery status
+        :param percentage: SOC of the battery
+        :param is_charging: True if the battery is charging
         :return:
         """
         sys.stdout.write(bytes('\r'.encode('utf-8')))
@@ -91,39 +105,51 @@ class ArduinoAlvik:
             marks_str = ' \U0001F50B'
         else:
             marks_str = ' \U0001FAAB'
-        word = marks_str + f" {percentage}% \t"
+        charging_str = f' \U0001F50C' if is_charging else ' \U000026A0WARNING: battery is discharging!'
+        word = marks_str + f" {percentage}%" + charging_str + " \t"
         sys.stdout.write(bytes((word.encode('utf-8'))))
 
-    def _idle(self, delay_=1, check_on_thread=False) -> None:
+    def _lenghty_op(self, iterations=10000000) -> int:
+        result = 0
+        for i in range(1, iterations):
+            result += i * i
+        return result
+
+    def _idle(self, delay_=1, check_on_thread=False, blocking=False) -> None:
         """
         Alvik's idle mode behaviour
         :return:
         """
-
         NANO_CHK.value(1)
-        sleep_ms(500)
+        self.i2c.set_single_thread(True)
+
+        if blocking:
+            self._lenghty_op(50000)
+        else:
+            sleep_ms(500)
         led_val = 0
 
         try:
             while not self.is_on():
+
                 if check_on_thread and not self.__class__._update_thread_running:
                     break
-                _ESP32_SDA = Pin(A4, Pin.OUT)
-                _ESP32_SCL = Pin(A5, Pin.OUT)
-                _ESP32_SCL.value(1)
-                _ESP32_SDA.value(1)
-                sleep_ms(100)
-                _ESP32_SCL.value(0)
-                _ESP32_SDA.value(0)
 
                 cmd = bytearray(1)
                 cmd[0] = 0x06
-                i2c = I2C(0, scl=ESP32_SCL, sda=ESP32_SDA)
-                i2c.writeto(0x36, cmd)
-                soc_raw = struct.unpack('h', i2c.readfrom(0x36, 2))[0]
+
+                self.i2c.start()
+                self.i2c.writeto(0x36, cmd)
+
+                soc_raw = struct.unpack('h', self.i2c.readfrom(0x36, 2))[0]
                 soc_perc = soc_raw * 0.00390625
-                self._progress_bar(round(soc_perc))
-                sleep_ms(delay_)
+                self._battery_is_charging = soc_perc > 0
+                self._battery_perc = abs(soc_perc)
+                self._print_battery_status(round(soc_perc), self._battery_is_charging)
+                if blocking:
+                    self._lenghty_op(10000)
+                else:
+                    sleep_ms(delay_)
                 if soc_perc > 97:
                     LEDG.value(0)
                     LEDR.value(1)
@@ -131,17 +157,20 @@ class ArduinoAlvik:
                     LEDR.value(led_val)
                     LEDG.value(1)
                     led_val = (led_val + 1) % 2
-            print("********** Alvik is on **********")
+            self.i2c.set_single_thread(False)
+            if self.is_on():
+                print("********** Alvik is on **********")
         except KeyboardInterrupt:
             self.stop()
             sys.exit()
         except Exception as e:
             pass
-            # print(f'Unable to read SOC: {e}')
+            print(f'Unable to read SOC: {e}')
         finally:
             LEDR.value(1)
             LEDG.value(1)
             NANO_CHK.value(0)
+            self.i2c.set_single_thread(False)
 
     @staticmethod
     def _snake_robot(duration: int = 1000):
@@ -178,21 +207,42 @@ class ArduinoAlvik:
         if not self.is_on():
             print("\n********** Please turn on your Arduino Alvik! **********\n")
             sleep_ms(1000)
+            self.i2c.set_main_thread(_thread.get_ident())
             self._idle(1000)
         self._begin_update_thread()
+
         sleep_ms(100)
-        if self._touch_events.has_callbacks():
-            print('Starting touch events')
-            self._start_touch_events_thread()
+
         self._reset_hw()
         self._flush_uart()
         self._snake_robot(1000)
         self._wait_for_ack()
+        if not self._wait_for_fw_check():
+            print('\n********** PLEASE UPDATE ALVIK FIRMWARE (required: '+'.'.join(map(str,self._required_fw_version))+')! Check documentation **********\n')
+            sys.exit(-2)
         self._snake_robot(2000)
         self.set_illuminator(True)
         self.set_behaviour(1)
+        self.set_behaviour(2)
         self._set_color_reference()
+        if self._has_events_registered():
+            print('Starting events thread')
+            self._start_events_thread()
+        self.set_servo_positions(90, 90)
         return 0
+
+    def _has_events_registered(self) -> bool:
+        """
+        Returns True if Alvik has some events registered
+        :return:
+        """
+
+        return any([
+            self._touch_events.has_callbacks(),
+            self._move_events.has_callbacks(),
+            self._timer_events.has_callbacks()
+            # more events check
+        ])
 
     def _wait_for_ack(self) -> None:
         """
@@ -203,6 +253,18 @@ class ArduinoAlvik:
         while self._last_ack != 0x00:
             sleep_ms(20)
         self._waiting_ack = None
+
+    def _wait_for_fw_check(self) -> bool:
+        """
+        Waits until receives version from robot, check required version and return true if everything is ok
+        :return:
+        """
+        while self._fw_version == [None, None, None]:
+            sleep_ms(20)
+        if self.check_firmware_compatibility():
+            return True
+        else:
+            return False
 
     @staticmethod
     def _flush_uart():
@@ -313,7 +375,7 @@ class ArduinoAlvik:
         self._stop_update_thread()
 
         # stop touch events thread
-        self._stop_touch_events_thread()
+        self._stop_events_thread()
 
         # delete _instance
         del self.__class__._instance
@@ -358,17 +420,22 @@ class ArduinoAlvik:
         self._packeter.packetC2F(ord('J'), left_speed, right_speed)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
 
-    def set_wheels_position(self, left_angle: float, right_angle: float, unit: str = 'deg'):
+    def set_wheels_position(self, left_angle: float, right_angle: float, unit: str = 'deg', blocking: bool = True):
         """
         Sets left/right motor angle
         :param left_angle:
         :param right_angle:
         :param unit: the speed unit of measurement (default: 'rpm')
+        :param blocking:
         :return:
         """
-        self._packeter.packetC2F(ord('A'), convert_angle(left_angle, unit, 'deg'),
-                                 convert_angle(right_angle, unit, 'deg'))
+        left_angle = convert_angle(left_angle, unit, 'deg')
+        right_angle = convert_angle(right_angle, unit, 'deg')
+        self._packeter.packetC2F(ord('A'), left_angle, right_angle)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
+        self._waiting_ack = ord('P')
+        if blocking:
+            self._wait_for_target(idle_time=(max(left_angle, right_angle) / MOTOR_CONTROL_DEG_S))
 
     def get_wheels_position(self, unit: str = 'deg') -> (float | None, float | None):
         """
@@ -492,8 +559,18 @@ class ArduinoAlvik:
         :param b_position: position of B servomotor (0-180)
         :return:
         """
+        self._servo_positions[0] = a_position
+        self._servo_positions[1] = b_position
         self._packeter.packetC2B(ord('S'), a_position & 0xFF, b_position & 0xFF)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
+
+    def get_servo_positions(self) -> (int, int):
+        """
+        Returns the current servomotor positions
+        :return: position of A/B servomotor (0-180)
+        """
+
+        return self._servo_positions[0], self._servo_positions[1]
 
     def get_ack(self) -> str:
         """
@@ -547,6 +624,9 @@ class ArduinoAlvik:
         :param delay_: while loop delay (ms)
         :return:
         """
+
+        self.i2c.set_main_thread(_thread.get_ident())
+
         while True:
             if not self.is_on():
                 print("Alvik is off")
@@ -558,6 +638,7 @@ class ArduinoAlvik:
                 sleep_ms(2000)
                 self.set_illuminator(True)
                 self.set_behaviour(1)
+                self.set_behaviour(2)
             if not ArduinoAlvik._update_thread_running:
                 break
             if self._read_message():
@@ -596,13 +677,18 @@ class ArduinoAlvik:
             _, self._ax, self._ay, self._az, self._gx, self._gy, self._gz = self._packeter.unpacketC6F()
         elif code == ord('p'):
             # battery percentage
-            _, self._battery_perc = self._packeter.unpacketC1F()
+            _, battery_perc = self._packeter.unpacketC1F()
+            self._battery_is_charging = battery_perc > 0
+            self._battery_perc = abs(battery_perc)
         elif code == ord('d'):
             # distance sensor
             _, self._left_tof, self._center_tof, self._right_tof = self._packeter.unpacketC3I()
         elif code == ord('t'):
             # touch input
             _, self._touch_byte = self._packeter.unpacketC1B()
+        elif code == ord('m'):
+            # tilt/shake input
+            _, self._move_byte = self._packeter.unpacketC1B()
         elif code == ord('b'):
             # behaviour
             _, self._behaviour = self._packeter.unpacketC1B()
@@ -631,7 +717,7 @@ class ArduinoAlvik:
             _, self._x, self._y, self._theta = self._packeter.unpacketC3F()
         elif code == 0x7E:
             # firmware version
-            _, *self._version = self._packeter.unpacketC3B()
+            _, *self._fw_version = self._packeter.unpacketC3B()
         else:
             return -1
 
@@ -647,6 +733,13 @@ class ArduinoAlvik:
         if self._battery_perc > 100:
             return 100
         return round(self._battery_perc)
+
+    def is_battery_charging(self) -> bool:
+        """
+        Returns True if the device battery is charging
+        :return:
+        """
+        return self._battery_is_charging
 
     @property
     def _touch_bits(self) -> int:
@@ -711,6 +804,42 @@ class ArduinoAlvik:
         :return:
         """
         return bool(self._touch_bits & 0b10000000)
+
+    @property
+    def _move_bits(self) -> int:
+        """
+        Returns the shake/tilt state
+        :return:
+        """
+        return (self._move_byte & 0xFF) if self._move_byte is not None else 0x80
+
+    def get_shake(self) -> bool:
+        """
+        Returns true if Alvik is shaken
+        :return:
+        """
+        return bool(self._move_bits & 0b00000001)
+
+    def get_tilt(self) -> str:
+        """
+        Returns the tilt string eg: "X", "-Z" etc
+        :return:
+        """
+
+        if bool(self._move_bits & 0b00000100):
+            return "X"
+        if bool(self._move_bits & 0b00001000):
+            return "-X"
+        if bool(self._move_bits & 0b00010000):
+            return "Y"
+        if bool(self._move_bits & 0b00100000):
+            return "-Y"
+        if bool(self._move_bits & 0b01000000):
+            return "Z"
+        if bool(self._move_bits & 0b10000000):
+            return "-Z"
+
+        return ""
 
     @staticmethod
     def _limit(value: float, lower: float, upper: float) -> float:
@@ -959,12 +1088,46 @@ class ArduinoAlvik:
         """
         return convert_distance(self._bottom_tof, 'mm', unit)
 
-    def get_version(self) -> str:
+    def get_version(self, version: str = 'fw') -> str:
         """
-        Returns the firmware version of the Alvik
+        Returns the version of the Alvik firmware or micropython library
+        :param version:
+        :return:
+        """
+        if version == 'fw' or version == 'FW' or version == 'firmware':
+            return self.get_fw_version()
+        elif version == 'lib' or version == 'LIB':
+            return self.get_lib_version()
+        else:
+            return f'{None, None, None}'
+
+    def get_lib_version(self) -> str:
+        """
+        Returns the micropython library version of the Alvik
         :return:
         """
         return f'{self._version[0]}.{self._version[1]}.{self._version[2]}'
+    
+    def get_fw_version(self) -> str:
+        """
+        Returns the firmware version of the Alvik Carrier
+        :return:
+        """
+        return f'{self._fw_version[0]}.{self._fw_version[1]}.{self._fw_version[2]}'
+    
+    def get_required_fw_version(self) -> str:
+        """
+        Returns the required firmware version of the Alvik Carrier for this micropython library
+        :return:
+        """
+        return f'{self._required_fw_version[0]}.{self._required_fw_version[1]}.{self._required_fw_version[2]}'
+    
+    def check_firmware_compatibility(self) -> bool:
+        """
+        Returns true if the library and the firmware are compatible
+        :return:
+        """
+        return self._fw_version == self._required_fw_version
 
     def print_status(self):
         """
@@ -972,7 +1135,9 @@ class ArduinoAlvik:
         :return:
         """
         print('---ALVIK STATUS---')
-        print(f'VERSION: {self._version}')
+        print(f'LIBRARY VERSION: {self._version}')
+        print(f'REQUIRED FW VERSION: {self._required_fw_version}')
+        print(f'FIRMWARE VERSION: {self._fw_version}')
 
         print('---SENSORS---')
         print(f'TOF: T:{self._top_tof} B:{self._bottom_tof} L:{self._left_tof} CL:{self._center_left_tof}' +
@@ -992,6 +1157,27 @@ class ArduinoAlvik:
         print('---MOTORS---')
         print(f'LINEAR VEL: {self._linear_velocity}')
         print(f'ANGULAR VEL: {self._angular_velocity}')
+
+    def set_timer(self, mode: str, period: int, callback: callable, args: tuple = ()) -> None:
+        """
+        Register a timer callback
+        :param mode: _ArduinoAlvikTimerEvents.PERIODIC or .ONE_SHOT
+        :param period: period in milliseconds
+        :param callback:
+        :param args:
+        :return:
+        """
+
+        self._timer_events = _ArduinoAlvikTimerEvents(period)
+        self._timer_events.register_callback(mode, callback, args)
+
+    @property
+    def timer(self):
+        """
+        Gives access to the timer object
+        :return:
+        """
+        return self._timer_events
 
     def on_touch_ok_pressed(self, callback: callable, args: tuple = ()) -> None:
         """
@@ -1056,45 +1242,314 @@ class ArduinoAlvik:
         """
         self._touch_events.register_callback('on_right_pressed', callback, args)
 
-    def _start_touch_events_thread(self) -> None:
+    def on_shake(self, callback: callable, args: tuple = ()) -> None:
+        """
+        Register callback when Alvik is shaken
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._move_events.register_callback('on_shake', callback, args)
+
+    def on_x_tilt(self, callback: callable, args: tuple = ()) -> None:
+        """
+        Register callback when Alvik is tilted on X-axis
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._move_events.register_callback('on_x_tilt', callback, args)
+
+    def on_nx_tilt(self, callback: callable, args: tuple = ()) -> None:
+        """
+        Register callback when Alvik is tilted on negative X-axis
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._move_events.register_callback('on_nx_tilt', callback, args)
+
+    def on_y_tilt(self, callback: callable, args: tuple = ()) -> None:
+        """
+        Register callback when Alvik is tilted on Y-axis
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._move_events.register_callback('on_y_tilt', callback, args)
+
+    def on_ny_tilt(self, callback: callable, args: tuple = ()) -> None:
+        """
+        Register callback when Alvik is tilted on negative Y-axis
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._move_events.register_callback('on_ny_tilt', callback, args)
+
+    def on_z_tilt(self, callback: callable, args: tuple = ()) -> None:
+        """
+        Register callback when Alvik is tilted on Z-axis
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._move_events.register_callback('on_z_tilt', callback, args)
+
+    def on_nz_tilt(self, callback: callable, args: tuple = ()) -> None:
+        """
+        Register callback when Alvik is tilted on negative Z-axis
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._move_events.register_callback('on_nz_tilt', callback, args)
+
+    def _start_events_thread(self) -> None:
         """
         Starts the touch events thread
         :return:
         """
-        if not self.__class__._touch_events_thread_running:
-            self.__class__._touch_events_thread_running = True
-            self.__class__._touch_events_thread_id = _thread.start_new_thread(self._update_touch_events, (50,))
+        if not self.__class__._events_thread_running:
+            self.__class__._events_thread_running = True
+            self._timer_events.reset()                                     # resets the timer before starting
+            self._move_events.reset(_ArduinoAlvikMoveEvents.NZ_TILT)       # resets the orientation to -Z tilted
+            self.__class__._events_thread_id = _thread.start_new_thread(self._update_events, (50,))
 
-    def _update_touch_events(self, delay_: int = 100):
+    def _update_events(self, delay_: int = 100):
         """
         Updates the touch state so that touch events can be generated
         :param delay_:
         :return:
         """
         while True:
-            if self.is_on() and self._touch_byte is not None:
-                self._touch_events.update_touch_state(self._touch_byte)
-            if not ArduinoAlvik._touch_events_thread_running:
+            if not ArduinoAlvik._events_thread_running:
                 break
+
+            if self.is_on():
+                self._touch_events.update_state(self._touch_byte)
+                self._move_events.update_state(self._move_byte)
+                self._timer_events.update_state(ticks_ms())
+                # MORE events update callbacks to be added
+
             sleep_ms(delay_)
 
     @classmethod
-    def _stop_touch_events_thread(cls):
+    def _stop_events_thread(cls):
         """
         Stops the touch events thread
         :return:
         """
-        cls._touch_events_thread_running = False
+        cls._events_thread_running = False
+
+
+class _ArduinoAlvikI2C:
+
+    _main_thread_id = None
+
+    def __init__(self, sda: int, scl: int):
+        """
+        Alvik I2C wrapper
+        :param sda:
+        :param scl:
+        """
+        self._lock = _thread.allocate_lock()
+
+        self._is_single_thread = False
+
+        self.sda = sda
+        self.scl = scl
+
+    def set_main_thread(self, thread_id: int):
+        """
+        Sets the main thread of control. It will be the only thread allowed if set_single_thread is True
+        """
+        with self._lock:
+            self.__class__._main_thread_id = thread_id
+
+    def set_single_thread(self, value):
+        """
+        Sets the single thread mode on/off.
+        In single mode only the main thread is allowed to access the bus
+        """
+        self._is_single_thread = value
+
+    def is_accessible(self):
+        """
+        Returns True if bus is accessible by the current thread
+        """
+        return not self._is_single_thread or _thread.get_ident() == self.__class__._main_thread_id
+
+    def start(self):
+        """
+        Bitbanging start condition
+        :return:
+        """
+        _SDA = Pin(self.sda, Pin.OUT)
+        _SDA.value(1)
+        sleep_ms(100)
+        _SDA.value(0)
+
+    def init(self, scl, sda, freq=400_000) -> None:
+        """
+        init method just for call compatibility
+        """
+        print("AlvikWarning:: init Unsupported. Alvik defines/initializes its own I2C bus")
+
+    def deinit(self):
+        """
+        deinit method just for call compatibility
+        """
+        print("AlvikWarning:: deinit Unsupported. Alvik defines/initializes its own I2C bus")
+
+    def stop(self):
+        """ Bitbanging stop condition (untested)
+        :return:
+        """
+        _SDA = Pin(self.sda, Pin.OUT)
+        _SDA.value(0)
+        sleep_ms(100)
+        _SDA.value(1)
+
+    def scan(self) -> list[int]:
+        """
+        I2C scan method
+        :return:
+        """
+        if not self.is_accessible():
+            return []
+        with self._lock:
+            i2c = I2C(0, scl=Pin(self.scl, Pin.OUT), sda=Pin(self.sda, Pin.OUT))
+            return i2c.scan()
+
+    def readfrom(self, addr, nbytes, stop=True) -> bytes:
+        """
+        Wrapping i2c readfrom
+        """
+        if not self.is_accessible():
+            return bytes(nbytes)
+        with self._lock:
+            i2c = I2C(0, scl=Pin(self.scl, Pin.OUT), sda=Pin(self.sda, Pin.OUT))
+            return i2c.readfrom(addr, nbytes, stop)
+
+    def writeto(self, addr, buf, stop=True) -> int:
+        """
+        Wrapping i2c writeto
+        """
+        if not self.is_accessible():
+            return 0
+        with self._lock:
+            i2c = I2C(0, scl=Pin(self.scl, Pin.OUT), sda=Pin(self.sda, Pin.OUT))
+            return i2c.writeto(addr, buf, stop)
+
+    def readinto(self, buf, nack=True) -> None:
+        """
+        Wrapping i2c readinto
+        """
+        if not self.is_accessible():
+            return
+        with self._lock:
+            i2c = I2C(0, scl=Pin(self.scl, Pin.OUT), sda=Pin(self.sda, Pin.OUT))
+            return i2c.readinto(buf, nack)
+
+    def write(self, buf) -> int:
+        """
+        Wrapping i2c write
+        """
+        if not self.is_accessible():
+            return 0
+        with self._lock:
+            i2c = I2C(0, scl=Pin(self.scl, Pin.OUT), sda=Pin(self.sda, Pin.OUT))
+            return i2c.write(buf)
+
+    def readfrom_into(self, addr, buf, stop=True) -> None:
+        """
+        Wrapping i2c readfrom_into
+        """
+        if not self.is_accessible():
+            return
+        with self._lock:
+            i2c = I2C(0, scl=Pin(self.scl, Pin.OUT), sda=Pin(self.sda, Pin.OUT))
+            return i2c.readfrom_into(addr, buf, stop)
+
+    def writevto(self, addr, vector, stop=True) -> int:
+        """
+        Wrapping i2c writevto
+        """
+        if not self.is_accessible():
+            return 0
+        with self._lock:
+            i2c = I2C(0, scl=Pin(self.scl, Pin.OUT), sda=Pin(self.sda, Pin.OUT))
+            return i2c.writevto(addr, vector, stop)
+
+    def readfrom_mem(self, addr, memaddr, nbytes, addrsize=8) -> bytes:
+        """
+        Wrapping i2c readfrom_mem
+        """
+        if not self.is_accessible():
+            return bytes(nbytes)
+        with self._lock:
+            i2c = I2C(0, scl=Pin(self.scl, Pin.OUT), sda=Pin(self.sda, Pin.OUT))
+            return i2c.readfrom_mem(addr, memaddr, nbytes, addrsize=addrsize)
+
+    def readfrom_mem_into(self, addr, memaddr, buf, addrsize=8) -> None:
+        """
+        Wrapping i2c readfrom_mem_into
+        """
+        if not self.is_accessible():
+            return
+        with self._lock:
+            i2c = I2C(0, scl=Pin(self.scl, Pin.OUT), sda=Pin(self.sda, Pin.OUT))
+            return i2c.readfrom_mem_into(addr, memaddr, buf, addrsize=addrsize)
+
+    def writeto_mem(self, addr, memaddr, buf, addrsize=8) -> None:
+        """
+        Wrapping i2c writeto_mem
+        """
+        if not self.is_accessible():
+            return
+        with self._lock:
+            i2c = I2C(0, scl=Pin(self.scl, Pin.OUT), sda=Pin(self.sda, Pin.OUT))
+            return i2c.writeto_mem(addr, memaddr, buf, addrsize=addrsize)
+
+
+
+class _ArduinoAlvikServo:
+
+    def __init__(self, packeter: ucPack, label: str, servo_id: int, position: list[int | None]):
+        self._packeter = packeter
+        self._label = label
+        self._id = servo_id
+        self._position = position
+
+    def set_position(self, position):
+        """
+        Sets the position of the servo
+        :param position:
+        :return:
+        """
+        self._position[self._id] = position
+        self._packeter.packetC2B(ord('S'), self._position[0] & 0xFF, self._position[1] & 0xFF)
+        uart.write(self._packeter.msg[0:self._packeter.msg_size])
+
+    def get_position(self) -> int:
+        """
+        Returns the position of the servo
+        :return:
+        """
+        return self._position[self._id]
 
 
 class _ArduinoAlvikWheel:
 
-    def __init__(self, packeter: ucPack, label: int, wheel_diameter_mm: float = WHEEL_DIAMETER_MM):
+    def __init__(self, packeter: ucPack, label: int, wheel_diameter_mm: float = WHEEL_DIAMETER_MM,
+                 alvik: ArduinoAlvik = None):
         self._packeter = packeter
         self._label = label
         self._wheel_diameter_mm = wheel_diameter_mm
         self._speed = None
         self._position = None
+        self._alvik = alvik
 
     def reset(self, initial_position: float = 0.0, unit: str = 'deg'):
         """
@@ -1162,16 +1617,27 @@ class _ArduinoAlvikWheel:
         """
         return convert_angle(self._position, 'deg', unit)
 
-    def set_position(self, position: float, unit: str = 'deg'):
+    def set_position(self, position: float, unit: str = 'deg', blocking: bool = True):
         """
         Sets left/right motor speed
-        :param position: the speed of the motor
+        :param position: the position of the motor
         :param unit: the unit of measurement
+        :param blocking:
         :return:
         """
-        self._packeter.packetC2B1F(ord('W'), self._label & 0xFF, ord('P'),
-                                   convert_angle(position, unit, 'deg'))
+        position = convert_angle(position, unit, 'deg')
+        self._packeter.packetC2B1F(ord('W'), self._label & 0xFF, ord('P'), position)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
+        self._alvik._waiting_ack = ord('P')
+        if blocking:
+            self._alvik._wait_for_target(idle_time=(position / MOTOR_CONTROL_DEG_S))
+
+    def is_target_reached(self):
+        """
+        Checks if the target position is reached
+        :return:
+        """
+        return self._alvik.is_target_reached()
 
 
 class _ArduinoAlvikRgbLed:
@@ -1205,6 +1671,8 @@ class _ArduinoAlvikEvents:
     This is a generic events class
     """
 
+    available_events = []
+
     def __init__(self):
         self._callbacks = dict()
 
@@ -1216,6 +1684,9 @@ class _ArduinoAlvikEvents:
         :param args: arguments tuple to pass to the callable. remember the comma! (value,)
         :return:
         """
+
+        if event_name not in self.__class__.available_events:
+            return
         self._callbacks[event_name] = (callback, args,)
 
     def has_callbacks(self) -> bool:
@@ -1234,6 +1705,133 @@ class _ArduinoAlvikEvents:
         if event_name not in self._callbacks.keys():
             return
         self._callbacks[event_name][0](*self._callbacks[event_name][1])
+
+    def update_state(self, state):
+        """
+        Updates the internal state of the events handler
+        :return:
+        """
+        pass
+
+
+class _ArduinoAlvikTimerEvents(_ArduinoAlvikEvents):
+    """
+    Event class to handle timer events
+    """
+
+    available_events = ['periodic', 'one_shot']
+    PERIODIC = 'periodic'
+    ONE_SHOT = 'one_shot'
+
+    def __init__(self, period: int):
+        """
+        Timer initialization
+        :param period: Timer period in milliseconds
+        """
+        self._last_trigger = ticks_ms()
+        self._period = period
+        self._triggered = False
+        self._stopped = False
+        super().__init__()
+
+    def is_triggered(self):
+        """
+        Returns the trigger state
+        :return:
+        """
+        return self._triggered
+
+    def is_stopped(self):
+        """
+        Return True if timer is stopped
+        :return:
+        """
+        return self._stopped
+
+    def set(self, start=None, period: int = None):
+        """
+        Sets the last trigger time
+        :param start:
+        :param period:
+        :return:
+        """
+        self._last_trigger = start if start is not None else ticks_ms()
+        if period is not None:
+            self._period = period
+
+    def reset(self, start=None, period: int = None):
+        """
+        Resets the timer. Use just before starting the events thread or if you want to restart the Timer
+        :param start:
+        :param period:
+        :return:
+        """
+        self._last_trigger = start if start is not None else ticks_ms()
+        if period is not None:
+            self._period = period
+        self._triggered = False
+
+    def stop(self):
+        """
+        Stops the timer
+        :return:
+        """
+
+        self._stopped = True
+
+    def resume(self):
+        """
+        Resumes the timer
+        :return:
+        """
+        self._stopped = False
+
+    def get(self) -> int:
+        """
+        Returns the time passed since the last trigger in ms
+        :return:
+        """
+        return ticks_diff(ticks_ms(), self._last_trigger)
+
+    def register_callback(self, event_name: str, callback: callable, args: tuple = None):
+        """
+        Repeated calls to register_callback will overwrite the timer's behaviour. The Timer can be either PERIODIC
+         or ONE_SHOT
+        :param event_name:
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._callbacks = dict()
+        super().register_callback(event_name, callback, args)
+
+    def _is_period_expired(self, now=None) -> bool:
+        """
+        True if the timer period is expired
+        :return:
+        """
+
+        if now is None:
+            now = ticks_ms()
+        return ticks_diff(now, self._last_trigger) > self._period
+
+    def update_state(self, ticks):
+        """
+        Updates the internal state of the events handler and executes the related callback
+        :return:
+        """
+
+        if list(self._callbacks.keys()) == [self.PERIODIC]:
+            if self._is_period_expired(ticks):
+                self._last_trigger = ticks
+                if not self._stopped:
+                    self.execute_callback(self.PERIODIC)
+        elif list(self._callbacks.keys()) == [self.ONE_SHOT] and not self._triggered:
+            if self._is_period_expired(ticks):
+                self._last_trigger = ticks
+                if not self._stopped:
+                    self.execute_callback(self.ONE_SHOT)
+                self._triggered = True
 
 
 class _ArduinoAlvikTouchEvents(_ArduinoAlvikEvents):
@@ -1320,40 +1918,164 @@ class _ArduinoAlvikTouchEvents(_ArduinoAlvikEvents):
         """
         return not bool(current_state & 0b10000000) and bool(new_state & 0b10000000)
 
-    def update_touch_state(self, touch_state: int):
+    def update_state(self, state: int | None):
         """
         Updates the internal touch state and executes any possible callback
-        :param touch_state:
+        :param state:
         :return:
         """
 
-        if self._is_ok_pressed(self._current_touch_state, touch_state):
+        if state is None:
+            return
+
+        if self._is_ok_pressed(self._current_touch_state, state):
             self.execute_callback('on_ok_pressed')
 
-        if self._is_cancel_pressed(self._current_touch_state, touch_state):
+        if self._is_cancel_pressed(self._current_touch_state, state):
             self.execute_callback('on_cancel_pressed')
 
-        if self._is_center_pressed(self._current_touch_state, touch_state):
+        if self._is_center_pressed(self._current_touch_state, state):
             self.execute_callback('on_center_pressed')
 
-        if self._is_up_pressed(self._current_touch_state, touch_state):
+        if self._is_up_pressed(self._current_touch_state, state):
             self.execute_callback('on_up_pressed')
 
-        if self._is_left_pressed(self._current_touch_state, touch_state):
+        if self._is_left_pressed(self._current_touch_state, state):
             self.execute_callback('on_left_pressed')
 
-        if self._is_down_pressed(self._current_touch_state, touch_state):
+        if self._is_down_pressed(self._current_touch_state, state):
             self.execute_callback('on_down_pressed')
 
-        if self._is_right_pressed(self._current_touch_state, touch_state):
+        if self._is_right_pressed(self._current_touch_state, state):
             self.execute_callback('on_right_pressed')
 
-        self._current_touch_state = touch_state
+        self._current_touch_state = state
 
-    def register_callback(self, event_name: str, callback: callable, args: tuple = None):
-        if event_name not in self.__class__.available_events:
+
+class _ArduinoAlvikMoveEvents(_ArduinoAlvikEvents):
+    """
+    Event class to handle move events
+    """
+
+    available_events = ['on_shake', 'on_x_tilt', 'on_y_tilt', 'on_z_tilt',
+                        'on_nx_tilt', 'on_ny_tilt', 'on_nz_tilt']
+
+    NZ_TILT = 0x80
+
+    def __init__(self):
+        self._current_state = 0
+        super().__init__()
+
+    def reset(self, state: int = 0x00):
+        """
+        Sets the initial state
+        :param state:
+        :return:
+        """
+        self._current_state = state
+
+    @staticmethod
+    def _is_shaken(current_state, new_state) -> bool:
+        """
+        True if Alvik was shaken
+        :param current_state:
+        :param new_state:
+        :return:
+        """
+        return not bool(current_state & 0b00000001) and bool(new_state & 0b00000001)
+
+    @staticmethod
+    def _is_x_tilted(current_state, new_state) -> bool:
+        """
+        True if Alvik is tilted on X-axis
+        :param current_state:
+        :param new_state:
+        :return:
+        """
+        return not bool(current_state & 0b00000100) and bool(new_state & 0b00000100)
+
+    @staticmethod
+    def _is_neg_x_tilted(current_state, new_state) -> bool:
+        """
+        True if Alvik is tilted on negative X-axis
+        :param current_state:
+        :param new_state:
+        :return:
+        """
+        return not bool(current_state & 0b00001000) and bool(new_state & 0b00001000)
+
+    @staticmethod
+    def _is_y_tilted(current_state, new_state) -> bool:
+        """
+        True if Alvik is tilted on Y-axis
+        :param current_state:
+        :param new_state:
+        :return:
+        """
+        return not bool(current_state & 0b00010000) and bool(new_state & 0b00010000)
+
+    @staticmethod
+    def _is_neg_y_tilted(current_state, new_state) -> bool:
+        """
+        True if Alvik is tilted on negative Y-axis
+        :param current_state:
+        :param new_state:
+        :return:
+        """
+        return not bool(current_state & 0b00100000) and bool(new_state & 0b00100000)
+
+    @staticmethod
+    def _is_z_tilted(current_state, new_state) -> bool:
+        """
+        True if Alvik is tilted on Z-axis
+        :param current_state:
+        :param new_state:
+        :return:
+        """
+        return not bool(current_state & 0b01000000) and bool(new_state & 0b01000000)
+
+    @staticmethod
+    def _is_neg_z_tilted(current_state, new_state) -> bool:
+        """
+        True if Alvik is tilted on negative Z-axis
+        :param current_state:
+        :param new_state:
+        :return:
+        """
+        return not bool(current_state & 0b10000000) and bool(new_state & 0b10000000)
+
+    def update_state(self, state: int | None):
+        """
+        Updates the internal state and executes any possible callback
+        :param state:
+        :return:
+        """
+
+        if state is None:
             return
-        super().register_callback(event_name, callback, args)
+
+        if self._is_shaken(self._current_state, state):
+            self.execute_callback('on_shake')
+
+        if self._is_x_tilted(self._current_state, state):
+            self.execute_callback('on_x_tilt')
+
+        if self._is_neg_x_tilted(self._current_state, state):
+            self.execute_callback('on_nx_tilt')
+
+        if self._is_y_tilted(self._current_state, state):
+            self.execute_callback('on_y_tilt')
+
+        if self._is_neg_y_tilted(self._current_state, state):
+            self.execute_callback('on_ny_tilt')
+
+        if self._is_z_tilted(self._current_state, state):
+            self.execute_callback('on_z_tilt')
+
+        if self._is_neg_z_tilted(self._current_state, state):
+            self.execute_callback('on_nz_tilt')
+
+        self._current_state = state
 
 
 # UPDATE FIRMWARE METHOD #
