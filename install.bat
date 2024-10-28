@@ -30,6 +30,7 @@ python -m mpremote %port_string% fs cp arduino_alvik/uart.py :lib/arduino_alvik/
 
 echo Installing dependencies
 python -m mpremote %port_string% mip install github:arduino/ucPack-mpy
+python -m mpremote %port_string% mip install github:arduino/arduino-runtime-mpy
 
 python -m mpremote %port_string% reset
 exit /b 0
