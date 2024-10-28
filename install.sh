@@ -55,5 +55,6 @@ $python_command -m mpremote $connect_string fs cp arduino_alvik/uart.py :lib/ard
 
 echo "Installing dependencies"
 $python_command -m mpremote $connect_string mip install github:arduino/ucPack-mpy
+$python_command -m mpremote $connect_string mip install github:arduino/arduino-runtime-mpy
 
 $python_command -m mpremote $connect_string reset
