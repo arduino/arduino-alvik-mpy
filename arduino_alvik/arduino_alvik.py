@@ -254,13 +254,19 @@ class ArduinoAlvik:
             sleep_ms(20)
         self._waiting_ack = None
 
-    def _wait_for_fw_check(self) -> bool:
+    def _wait_for_fw_check(self, timeout=5) -> bool:
         """
         Waits until receives version from robot, check required version and return true if everything is ok
+        :param timeout: wait for fw timeout in seconds
         :return:
         """
+        start = ticks_ms()
         while self._fw_version == [None, None, None]:
             sleep_ms(20)
+            if ticks_diff(ticks_ms(), start) < timeout * 1000:
+                print("Could not get FW version")
+                return False
+
         if self.check_firmware_compatibility():
             return True
         else:
