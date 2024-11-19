@@ -9,7 +9,6 @@ def reload_modules():
         del sys.modules[m]
 
     for m in to_be_reloaded:
-        print(f"Reloading {m}")
         exec(f'import {m}')
 
 
