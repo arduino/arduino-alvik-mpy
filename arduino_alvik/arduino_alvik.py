@@ -270,7 +270,7 @@ class ArduinoAlvik:
         start = ticks_ms()
         while self._fw_version == [None, None, None]:
             sleep_ms(20)
-            if ticks_diff(ticks_ms(), start) < timeout * 1000:
+            if ticks_diff(ticks_ms(), start) > timeout * 1000:
                 print("Could not get FW version")
                 return False
 
