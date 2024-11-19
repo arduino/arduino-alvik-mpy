@@ -278,8 +278,7 @@ class ArduinoAlvik:
         Empties the UART buffer
         :return:
         """
-        while uart.any():
-            uart.read(1)
+        uart.read(uart.any())
 
     def _begin_update_thread(self):
         """
@@ -647,21 +646,22 @@ class ArduinoAlvik:
                 self.set_behaviour(2)
             if not ArduinoAlvik._update_thread_running:
                 break
-            if self._read_message():
-                self._parse_message()
+            self._read_message()
             sleep_ms(delay_)
 
-    def _read_message(self) -> bool:
+    def _read_message(self) -> None:
         """
         Read a message from the uC
         :return: True if a message terminator was reached
         """
-        while uart.any():
-            b = uart.read(1)[0]
-            self._packeter.buffer.push(b)
-            if b == self._packeter.end_index and self._packeter.checkPayload():
-                return True
-        return False
+        buf = bytearray(uart.any())
+        uart.readinto(buf)
+        if len(buf):
+            uart.readinto(buf)
+            for b in buf:
+                self._packeter.buffer.push(b)
+                if b == self._packeter.end_index and self._packeter.checkPayload():
+                    self._parse_message()
 
     def _parse_message(self) -> int:
         """
