@@ -1,5 +1,4 @@
 import sys
-import gc
 import struct
 from machine import I2C
 import _thread
@@ -83,6 +82,14 @@ class ArduinoAlvik:
         self._touch_events = _ArduinoAlvikTouchEvents()
         self._move_events = _ArduinoAlvikMoveEvents()
         self._timer_events = _ArduinoAlvikTimerEvents(-1)
+
+    def __del__(self):
+        """
+        This method is a stub. __del__ is not implemented in MicroPython (https://docs.micropython.org/en/latest/genrst/core_language.html#special-method-del-not-implemented-for-user-defined-classes)
+        :return:
+        """
+        ...
+        # self.__class__._instance = None
 
     @staticmethod
     def is_on() -> bool:
@@ -381,10 +388,6 @@ class ArduinoAlvik:
 
         # stop touch events thread
         self._stop_events_thread()
-
-        # delete _instance
-        del self.__class__._instance
-        gc.collect()
 
     @staticmethod
     def _reset_hw():
