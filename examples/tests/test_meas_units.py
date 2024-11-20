@@ -1,6 +1,6 @@
 from arduino_alvik import ArduinoAlvik
 from time import sleep_ms
-import sys
+
 
 alvik = ArduinoAlvik()
 alvik.begin()
@@ -116,9 +116,9 @@ while True:
         print(f"Current speed is {alvik.get_drive_speed()} (mm/s) (rpm)")
 
         alvik.stop()
-        sys.exit()
+        break
 
     except KeyboardInterrupt as e:
         print('over')
         alvik.stop()
-        sys.exit()
+        break

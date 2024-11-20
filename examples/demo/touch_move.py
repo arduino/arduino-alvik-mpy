@@ -1,6 +1,6 @@
 from arduino_alvik import ArduinoAlvik
 from time import sleep_ms
-import sys
+
 
 alvik = ArduinoAlvik()
 alvik.begin()
@@ -70,6 +70,7 @@ def run_movement(movement):
         alvik.right_led.set_color(0, 0, 0)
         sleep_ms(100)
 
+
 while alvik.get_touch_ok():
     sleep_ms(50)
 
@@ -77,8 +78,8 @@ while not (alvik.get_touch_ok() and len(movements) != 0):
     add_movement()
     sleep_ms(50)
 
-try:
-    while True:
+while True:
+    try:
         alvik.left_led.set_color(0, 0, 0)
         alvik.right_led.set_color(0, 0, 0)
         for move in movements:
@@ -94,9 +95,9 @@ try:
             alvik.brake()
             add_movement()
             sleep_ms(100)
-except KeyboardInterrupt as e:
-    print('over')
-    alvik.stop()
-    sys.exit()
+    except KeyboardInterrupt as e:
+        print('over')
+        alvik.stop()
+        break
 
 

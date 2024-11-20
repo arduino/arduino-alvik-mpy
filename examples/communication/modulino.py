@@ -1,6 +1,8 @@
 from arduino_alvik import ArduinoAlvik
 from time import sleep_ms
 import sys
+
+
 try:
     from modulino import ModulinoPixels
 except ImportError as e:
@@ -32,4 +34,4 @@ while True:
 
     except KeyboardInterrupt as e:
         alvik.stop()
-        sys.exit()
+        break
