@@ -1,6 +1,5 @@
 from arduino_alvik import ArduinoAlvik
 from time import sleep_ms
-import sys
 
 
 def calculate_center(left: int, center: int, right: int):
@@ -29,8 +28,8 @@ while alvik.get_touch_ok():
 while not alvik.get_touch_ok():
     sleep_ms(50)
 
-try:
-    while True:
+while True:
+    try:
         while not alvik.get_touch_cancel():
 
             line_sensors = alvik.get_line_sensors()
@@ -58,7 +57,7 @@ try:
             alvik.brake()
             sleep_ms(100)
 
-except KeyboardInterrupt as e:
-    print('over')
-    alvik.stop()
-    sys.exit()
+    except KeyboardInterrupt as e:
+        print('over')
+        alvik.stop()
+        break
