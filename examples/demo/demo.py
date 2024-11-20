@@ -1,61 +1,101 @@
 from arduino_alvik import ArduinoAlvik
 from time import sleep_ms
 
-from line_follower import run_line_follower
-from touch_move import run_touch_move
-from hand_follower import run_hand_follower
+
+def blink(alvik):
+    alvik.left_led.set_color(1, 0, 1)
+    alvik.right_led.set_color(1, 0, 1)
+    sleep_ms(200)
+    alvik.left_led.set_color(1, 0, 0)
+    alvik.right_led.set_color(1, 0, 0)
 
 
-alvik = ArduinoAlvik()
-alvik.begin()
+def add_movement(alvik, movements):
+    if alvik.get_touch_up():
+        movements.append('forward')
+        blink(alvik)
+        while alvik.get_touch_up():
+            sleep_ms(100)
+    if alvik.get_touch_down():
+        movements.append('backward')
+        blink(alvik)
+        while alvik.get_touch_down():
+            sleep_ms(100)
+    if alvik.get_touch_left():
+        movements.append('left')
+        blink(alvik)
+        while alvik.get_touch_left():
+            sleep_ms(100)
+    if alvik.get_touch_right():
+        movements.append('right')
+        blink(alvik)
+        while alvik.get_touch_right():
+            sleep_ms(100)
+    if alvik.get_touch_cancel():
+        movements = []
+        for i in range(0, 3):
+            val = i % 2
+            alvik.left_led.set_color(val, 0, 0)
+            alvik.right_led.set_color(val, 0, 0)
+            sleep_ms(200)
+        while alvik.get_touch_cancel():
+            sleep_ms(100)
 
-menu_status = 0
 
-
-def update_led_status(val):
-    if val == 0:
-        alvik.left_led.set_color(0, 0, 1)
-        alvik.right_led.set_color(0, 0, 1)
-    elif val == 1:
-        alvik.left_led.set_color(0, 1, 0)
-        alvik.right_led.set_color(0, 1, 0)
-    elif val == -1:
+def run_movement(alvik, movement):
+    if movement == 'forward':
+        alvik.move(10, blocking=False)
+    if movement == 'backward':
+        alvik.move(-10, blocking=False)
+    if movement == 'left':
+        alvik.rotate(90, blocking=False)
+    if movement == 'right':
+        alvik.rotate(-90, blocking=False)
+    while not alvik.get_touch_cancel() and not alvik.is_target_reached():
         alvik.left_led.set_color(1, 0, 0)
         alvik.right_led.set_color(1, 0, 0)
-
-
-while True:
-
-    update_led_status(menu_status)
-
-    try:
-
-        if alvik.get_touch_ok():
-            if menu_status == 0:
-                while not alvik.get_touch_cancel():
-                    run_line_follower(alvik)
-            elif menu_status == 1:
-                while not alvik.get_touch_cancel():
-                    run_hand_follower(alvik)
-            elif menu_status == -1:
-                while not alvik.get_touch_cancel():
-                    run_touch_move(alvik)
-            alvik.brake()
-
-        if alvik.get_touch_up() and menu_status < 1:
-            menu_status += 1
-            update_led_status(menu_status)
-            while alvik.get_touch_up():
-                sleep_ms(100)
-        if alvik.get_touch_down() and menu_status > -1:
-            menu_status -= 1
-            update_led_status(menu_status)
-            while alvik.get_touch_down():
-                sleep_ms(100)
-
+        sleep_ms(100)
+        alvik.left_led.set_color(0, 0, 0)
+        alvik.right_led.set_color(0, 0, 0)
         sleep_ms(100)
 
-    except KeyboardInterrupt as e:
-        print('over')
-        alvik.stop()
-        break
+
+def run_touch_move(alvik) -> int:
+    movements = []
+    while not (alvik.get_touch_ok() and len(movements) != 0):
+        if alvik.get_touch_cancel():
+            movements.clear()
+            blink(alvik)
+            return -1
+        alvik.left_led.set_color(1, 0, 0)
+        alvik.right_led.set_color(1, 0, 0)
+        alvik.brake()
+        add_movement(alvik, movements)
+        sleep_ms(100)
+
+    alvik.left_led.set_color(0, 0, 0)
+    alvik.right_led.set_color(0, 0, 0)
+    for move in movements:
+        run_movement(alvik, move)
+        if alvik.get_touch_cancel():
+            blink(alvik)
+            return -1
+    return 1
+
+
+if __name__ == "__main__":
+    alvik = ArduinoAlvik()
+    alvik.begin()
+
+    alvik.left_led.set_color(1, 0, 0)
+    alvik.right_led.set_color(1, 0, 0)
+
+    while True:
+        try:
+
+            run_touch_move(alvik)
+
+        except KeyboardInterrupt as e:
+            print('over')
+            alvik.stop()
+            break

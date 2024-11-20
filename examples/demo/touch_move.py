@@ -63,6 +63,9 @@ def run_movement(movement):
 def run_touch_move(alvik):
     movements = []
     while not (alvik.get_touch_ok() and len(movements) != 0):
+        if alvik.get_touch_cancel():
+            movements.clear()
+            return
         alvik.left_led.set_color(1, 0, 0)
         alvik.right_led.set_color(1, 0, 0)
         alvik.brake()
