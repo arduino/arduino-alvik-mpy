@@ -12,7 +12,7 @@ def setup():
 
 
 def loop():
-    print('loopy loop')
+    print('blinking LEDs')
     alvik.left_led.set_color(0, 0, 1)
     alvik.right_led.set_color(0, 0, 1)
     sleep_ms(500)
