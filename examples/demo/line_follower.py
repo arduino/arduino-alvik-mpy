@@ -12,52 +12,54 @@ def calculate_center(left: int, center: int, right: int):
     return centroid
 
 
-alvik = ArduinoAlvik()
-alvik.begin()
+def run_line_follower(alvik):
+    kp = 50.0
+    line_sensors = alvik.get_line_sensors()
+    print(f' {line_sensors}')
 
-error = 0
-control = 0
-kp = 50.0
+    error = calculate_center(*line_sensors)
+    control = error * kp
 
-alvik.left_led.set_color(0, 0, 1)
-alvik.right_led.set_color(0, 0, 1)
+    if control > 0.2:
+        alvik.left_led.set_color(1, 0, 0)
+        alvik.right_led.set_color(0, 0, 0)
+    elif control < -0.2:
+        alvik.left_led.set_color(1, 0, 0)
+        alvik.right_led.set_color(0, 0, 0)
+    else:
+        alvik.left_led.set_color(0, 1, 0)
+        alvik.right_led.set_color(0, 1, 0)
 
-while alvik.get_touch_ok():
-    sleep_ms(50)
+    alvik.set_wheels_speed(30 - control, 30 + control)
+    sleep_ms(100)
 
-while not alvik.get_touch_ok():
-    sleep_ms(50)
 
-while True:
-    try:
-        while not alvik.get_touch_cancel():
+if __name__ == "__main__":
 
-            line_sensors = alvik.get_line_sensors()
-            print(f' {line_sensors}')
+    alvik = ArduinoAlvik()
+    alvik.begin()
 
-            error = calculate_center(*line_sensors)
-            control = error * kp
+    alvik.left_led.set_color(0, 0, 1)
+    alvik.right_led.set_color(0, 0, 1)
 
-            if control > 0.2:
-                alvik.left_led.set_color(1, 0, 0)
-                alvik.right_led.set_color(0, 0, 0)
-            elif control < -0.2:
-                alvik.left_led.set_color(1, 0, 0)
-                alvik.right_led.set_color(0, 0, 0)
-            else:
-                alvik.left_led.set_color(0, 1, 0)
-                alvik.right_led.set_color(0, 1, 0)
+    while alvik.get_touch_ok():
+        sleep_ms(50)
 
-            alvik.set_wheels_speed(30 - control, 30 + control)
-            sleep_ms(100)
+    while not alvik.get_touch_ok():
+        sleep_ms(50)
 
-        while not alvik.get_touch_ok():
-            alvik.left_led.set_color(0, 0, 1)
-            alvik.right_led.set_color(0, 0, 1)
-            alvik.brake()
-            sleep_ms(100)
+    while True:
+        try:
+            while not alvik.get_touch_cancel():
+                run_line_follower(alvik)
 
-    except KeyboardInterrupt as e:
-        print('over')
-        alvik.stop()
-        break
+            while not alvik.get_touch_ok():
+                alvik.left_led.set_color(0, 0, 1)
+                alvik.right_led.set_color(0, 0, 1)
+                alvik.brake()
+                sleep_ms(100)
+
+        except KeyboardInterrupt as e:
+            print('over')
+            alvik.stop()
+            break

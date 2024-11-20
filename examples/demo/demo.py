@@ -1,6 +1,10 @@
 from arduino_alvik import ArduinoAlvik
 from time import sleep_ms
 
+from line_follower import run_line_follower
+from touch_move import run_touch_move
+from hand_follower import run_hand_follower
+
 
 alvik = ArduinoAlvik()
 alvik.begin()
@@ -28,11 +32,15 @@ while True:
 
         if alvik.get_touch_ok():
             if menu_status == 0:
-                import line_follower
+                while not alvik.get_touch_cancel():
+                    run_line_follower(alvik)
             elif menu_status == 1:
-                import hand_follower
+                while not alvik.get_touch_cancel():
+                    run_hand_follower(alvik)
             elif menu_status == -1:
-                import touch_move
+                while not alvik.get_touch_cancel():
+                    run_touch_move(alvik)
+            alvik.brake()
 
         if alvik.get_touch_up() and menu_status < 1:
             menu_status += 1

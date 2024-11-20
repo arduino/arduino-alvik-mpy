@@ -2,15 +2,6 @@ from arduino_alvik import ArduinoAlvik
 from time import sleep_ms
 
 
-alvik = ArduinoAlvik()
-alvik.begin()
-
-alvik.left_led.set_color(1, 0, 0)
-alvik.right_led.set_color(1, 0, 0)
-
-movements = []
-
-
 def blink():
     alvik.left_led.set_color(1, 0, 1)
     alvik.right_led.set_color(1, 0, 1)
@@ -19,9 +10,7 @@ def blink():
     alvik.right_led.set_color(1, 0, 0)
 
 
-def add_movement():
-    global movements
-
+def add_movement(movements):
     if alvik.get_touch_up():
         movements.append('forward')
         blink()
@@ -71,33 +60,38 @@ def run_movement(movement):
         sleep_ms(100)
 
 
-while alvik.get_touch_ok():
-    sleep_ms(50)
+def run_touch_move(alvik):
+    movements = []
+    while not (alvik.get_touch_ok() and len(movements) != 0):
+        alvik.left_led.set_color(1, 0, 0)
+        alvik.right_led.set_color(1, 0, 0)
+        alvik.brake()
+        add_movement(movements)
+        sleep_ms(100)
 
-while not (alvik.get_touch_ok() and len(movements) != 0):
-    add_movement()
-    sleep_ms(50)
+    alvik.left_led.set_color(0, 0, 0)
+    alvik.right_led.set_color(0, 0, 0)
+    for move in movements:
+        run_movement(move)
+        if alvik.get_touch_cancel():
+            break
 
-while True:
-    try:
-        alvik.left_led.set_color(0, 0, 0)
-        alvik.right_led.set_color(0, 0, 0)
-        for move in movements:
-            run_movement(move)
-            if alvik.get_touch_cancel():
-                break
 
-        movements = []
+if __name__ == "__main__":
+    alvik = ArduinoAlvik()
+    alvik.begin()
 
-        while not (alvik.get_touch_ok() and len(movements) != 0):
-            alvik.left_led.set_color(1, 0, 0)
-            alvik.right_led.set_color(1, 0, 0)
-            alvik.brake()
-            add_movement()
-            sleep_ms(100)
-    except KeyboardInterrupt as e:
-        print('over')
-        alvik.stop()
-        break
+    alvik.left_led.set_color(1, 0, 0)
+    alvik.right_led.set_color(1, 0, 0)
+
+    while True:
+        try:
+
+            run_touch_move(alvik)
+
+        except KeyboardInterrupt as e:
+            print('over')
+            alvik.stop()
+            break
 
 
