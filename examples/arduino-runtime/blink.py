@@ -21,4 +21,8 @@ def loop():
     sleep_ms(500)
 
 
-start(setup, loop)
+def cleanup():
+    alvik.stop()
+
+
+start(setup=setup, loop=loop, cleanup=cleanup)
