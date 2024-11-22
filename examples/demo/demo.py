@@ -42,6 +42,9 @@ while True:
                 elif menu_status == -1:
                     if run_touch_move(alvik) < 0:
                         break
+            alvik.left_led.set_color(0, 0, 0)
+            alvik.right_led.set_color(0, 0, 0)
+            sleep_ms(500)
             alvik.brake()
 
         if alvik.get_touch_up() and menu_status < 1:
