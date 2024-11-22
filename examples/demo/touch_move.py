@@ -2,7 +2,7 @@ from arduino_alvik import ArduinoAlvik
 from time import sleep_ms
 
 
-def blink():
+def blink(alvik):
     alvik.left_led.set_color(1, 0, 1)
     alvik.right_led.set_color(1, 0, 1)
     sleep_ms(200)
@@ -10,25 +10,25 @@ def blink():
     alvik.right_led.set_color(1, 0, 0)
 
 
-def add_movement(movements):
+def add_movement(alvik, movements):
     if alvik.get_touch_up():
         movements.append('forward')
-        blink()
+        blink(alvik)
         while alvik.get_touch_up():
             sleep_ms(100)
     if alvik.get_touch_down():
         movements.append('backward')
-        blink()
+        blink(alvik)
         while alvik.get_touch_down():
             sleep_ms(100)
     if alvik.get_touch_left():
         movements.append('left')
-        blink()
+        blink(alvik)
         while alvik.get_touch_left():
             sleep_ms(100)
     if alvik.get_touch_right():
         movements.append('right')
-        blink()
+        blink(alvik)
         while alvik.get_touch_right():
             sleep_ms(100)
     if alvik.get_touch_cancel():
@@ -42,7 +42,7 @@ def add_movement(movements):
             sleep_ms(100)
 
 
-def run_movement(movement):
+def run_movement(alvik, movement):
     if movement == 'forward':
         alvik.move(10, blocking=False)
     if movement == 'backward':
@@ -60,24 +60,27 @@ def run_movement(movement):
         sleep_ms(100)
 
 
-def run_touch_move(alvik):
+def run_touch_move(alvik) -> int:
     movements = []
     while not (alvik.get_touch_ok() and len(movements) != 0):
         if alvik.get_touch_cancel():
             movements.clear()
-            return
+            blink(alvik)
+            return -1
         alvik.left_led.set_color(1, 0, 0)
         alvik.right_led.set_color(1, 0, 0)
         alvik.brake()
-        add_movement(movements)
+        add_movement(alvik, movements)
         sleep_ms(100)
 
     alvik.left_led.set_color(0, 0, 0)
     alvik.right_led.set_color(0, 0, 0)
     for move in movements:
-        run_movement(move)
+        run_movement(alvik, move)
         if alvik.get_touch_cancel():
-            break
+            blink(alvik)
+            return -1
+    return 1
 
 
 if __name__ == "__main__":
@@ -96,5 +99,3 @@ if __name__ == "__main__":
             print('over')
             alvik.stop()
             break
-
-
