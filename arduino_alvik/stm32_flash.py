@@ -296,7 +296,7 @@ def STM32_readMEM(pages: int):
         _incrementAddress(readAddress)
 
 
-def STM32_writeMEM(file_path: str):
+def STM32_writeMEM(file_path: str, toggle: "Generator" = None):
 
     with open(file_path, 'rb') as f:
         print(f"Flashing {file_path}\n")
@@ -326,6 +326,8 @@ def STM32_writeMEM(file_path: str):
             sys.stdout.write(f"{int((i/file_pages)*100)}%")
             i = i + 1
             _incrementAddress(writeAddress)
+            if toggle is not None:
+                next(toggle)
 
 
 def _STM32_standardEraseMEM(pages: int, page_list: bytearray = None):
