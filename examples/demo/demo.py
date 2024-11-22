@@ -31,6 +31,9 @@ while True:
     try:
 
         if alvik.get_touch_ok():
+            alvik.left_led.set_color(0, 0, 0)
+            alvik.right_led.set_color(0, 0, 0)
+            sleep_ms(500)
             while not alvik.get_touch_cancel():
                 if menu_status == 0:
                     run_line_follower(alvik)
