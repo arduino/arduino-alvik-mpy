@@ -2105,6 +2105,19 @@ def update_firmware(file_path: str):
         STM32_eraseMEM,
         STM32_writeMEM, )
 
+    def flash_toggle():
+        i = 0
+
+        while True:
+            if i == 0:
+                LEDR.value(1)
+                LEDG.value(0)
+            else:
+                LEDR.value(0)
+                LEDG.value(1)
+            i = (i + 1) % 2
+            yield
+
     if CHECK_STM32.value() is not 1:
         print("Turn on your Alvik to continue...")
         while CHECK_STM32.value() is not 1:
@@ -2121,8 +2134,13 @@ def update_firmware(file_path: str):
     STM32_eraseMEM(0xFFFF)
 
     print("\nWRITING MEM")
-    STM32_writeMEM(file_path)
+    toggle = flash_toggle()
+    STM32_writeMEM(file_path, toggle)
+
     print("\nDONE")
     print("\nLower Boot0 and reset STM32")
+
+    LEDR.value(1)
+    LEDG.value(1)
 
     STM32_endCommunication()
