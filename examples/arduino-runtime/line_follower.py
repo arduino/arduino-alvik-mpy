@@ -47,14 +47,14 @@ def setup():
 
 
 def loop():
-    while not alvik.get_touch_cancel():
-        run_line_follower(alvik)
-
     while not alvik.get_touch_ok():
         alvik.left_led.set_color(0, 0, 1)
         alvik.right_led.set_color(0, 0, 1)
         alvik.brake()
         sleep_ms(100)
+
+    while not alvik.get_touch_cancel():
+        run_line_follower(alvik)
 
 
 def cleanup():
