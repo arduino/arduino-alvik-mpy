@@ -10,8 +10,8 @@
         ["arduino_alvik/stm32_flash.py", "github:arduino/arduino-alvik-mpy/arduino_alvik/stm32_flash.py"]
     ],
     "deps": [
-        ["github:arduino/ucPack-mpy", "0.1.6"],
+        ["github:arduino/ucPack-mpy", "0.1.7"],
         ["github:arduino/arduino-runtime-mpy", "0.4.0"]
     ],
-    "version": "1.1.1"
+    "version": "1.1.2"
 }

@@ -1,5 +1,4 @@
 import sys
-import gc
 import struct
 from machine import I2C
 import _thread
@@ -83,6 +82,14 @@ class ArduinoAlvik:
         self._touch_events = _ArduinoAlvikTouchEvents()
         self._move_events = _ArduinoAlvikMoveEvents()
         self._timer_events = _ArduinoAlvikTimerEvents(-1)
+
+    def __del__(self):
+        """
+        This method is a stub. __del__ is not implemented in MicroPython (https://docs.micropython.org/en/latest/genrst/core_language.html#special-method-del-not-implemented-for-user-defined-classes)
+        :return:
+        """
+        ...
+        # self.__class__._instance = None
 
     @staticmethod
     def is_on() -> bool:
@@ -254,13 +261,19 @@ class ArduinoAlvik:
             sleep_ms(20)
         self._waiting_ack = None
 
-    def _wait_for_fw_check(self) -> bool:
+    def _wait_for_fw_check(self, timeout=5) -> bool:
         """
         Waits until receives version from robot, check required version and return true if everything is ok
+        :param timeout: wait for fw timeout in seconds
         :return:
         """
+        start = ticks_ms()
         while self._fw_version == [None, None, None]:
             sleep_ms(20)
+            if ticks_diff(ticks_ms(), start) > timeout * 1000:
+                print("Could not get FW version")
+                return False
+
         if self.check_firmware_compatibility():
             return True
         else:
@@ -272,8 +285,7 @@ class ArduinoAlvik:
         Empties the UART buffer
         :return:
         """
-        while uart.any():
-            uart.read(1)
+        uart.read(uart.any())
 
     def _begin_update_thread(self):
         """
@@ -376,10 +388,6 @@ class ArduinoAlvik:
 
         # stop touch events thread
         self._stop_events_thread()
-
-        # delete _instance
-        del self.__class__._instance
-        gc.collect()
 
     @staticmethod
     def _reset_hw():
@@ -641,21 +649,22 @@ class ArduinoAlvik:
                 self.set_behaviour(2)
             if not ArduinoAlvik._update_thread_running:
                 break
-            if self._read_message():
-                self._parse_message()
+            self._read_message()
             sleep_ms(delay_)
 
-    def _read_message(self) -> bool:
+    def _read_message(self) -> None:
         """
         Read a message from the uC
         :return: True if a message terminator was reached
         """
-        while uart.any():
-            b = uart.read(1)[0]
-            self._packeter.buffer.push(b)
-            if b == self._packeter.end_index and self._packeter.checkPayload():
-                return True
-        return False
+        buf = bytearray(uart.any())
+        uart.readinto(buf)
+        if len(buf):
+            uart.readinto(buf)
+            for b in buf:
+                self._packeter.buffer.push(b)
+                if b == self._packeter.end_index and self._packeter.checkPayload():
+                    self._parse_message()
 
     def _parse_message(self) -> int:
         """
@@ -2096,6 +2105,19 @@ def update_firmware(file_path: str):
         STM32_eraseMEM,
         STM32_writeMEM, )
 
+    def flash_toggle():
+        i = 0
+
+        while True:
+            if i == 0:
+                LEDR.value(1)
+                LEDG.value(0)
+            else:
+                LEDR.value(0)
+                LEDG.value(1)
+            i = (i + 1) % 2
+            yield
+
     if CHECK_STM32.value() is not 1:
         print("Turn on your Alvik to continue...")
         while CHECK_STM32.value() is not 1:
@@ -2112,8 +2134,13 @@ def update_firmware(file_path: str):
     STM32_eraseMEM(0xFFFF)
 
     print("\nWRITING MEM")
-    STM32_writeMEM(file_path)
+    toggle = flash_toggle()
+    STM32_writeMEM(file_path, toggle)
+
     print("\nDONE")
     print("\nLower Boot0 and reset STM32")
+
+    LEDR.value(1)
+    LEDG.value(1)
 
     STM32_endCommunication()

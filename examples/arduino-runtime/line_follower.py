@@ -1,5 +1,10 @@
-from arduino_alvik import ArduinoAlvik
 from time import sleep_ms
+
+from arduino import start
+from arduino_alvik import ArduinoAlvik
+
+
+alvik = ArduinoAlvik()
 
 
 def calculate_center(left: int, center: int, right: int):
@@ -13,6 +18,7 @@ def calculate_center(left: int, center: int, right: int):
 
 
 def run_line_follower(alvik):
+
     kp = 50.0
     line_sensors = alvik.get_line_sensors()
     print(f' {line_sensors}')
@@ -34,32 +40,25 @@ def run_line_follower(alvik):
     sleep_ms(100)
 
 
-if __name__ == "__main__":
-
-    alvik = ArduinoAlvik()
+def setup():
     alvik.begin()
-
     alvik.left_led.set_color(0, 0, 1)
     alvik.right_led.set_color(0, 0, 1)
 
-    while alvik.get_touch_ok():
-        sleep_ms(50)
 
+def loop():
     while not alvik.get_touch_ok():
-        sleep_ms(50)
+        alvik.left_led.set_color(0, 0, 1)
+        alvik.right_led.set_color(0, 0, 1)
+        alvik.brake()
+        sleep_ms(100)
 
-    while True:
-        try:
-            while not alvik.get_touch_cancel():
-                run_line_follower(alvik)
+    while not alvik.get_touch_cancel():
+        run_line_follower(alvik)
 
-            while not alvik.get_touch_ok():
-                alvik.left_led.set_color(0, 0, 1)
-                alvik.right_led.set_color(0, 0, 1)
-                alvik.brake()
-                sleep_ms(100)
 
-        except KeyboardInterrupt as e:
-            print('over')
-            alvik.stop()
-            break
+def cleanup():
+    alvik.stop()
+
+
+start(setup=setup, loop=loop, cleanup=cleanup)

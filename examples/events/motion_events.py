@@ -1,6 +1,5 @@
 from arduino_alvik import ArduinoAlvik
 from time import sleep
-import sys
 
 
 def toggle_value():
@@ -49,4 +48,4 @@ while True:
     except KeyboardInterrupt as e:
         print('over')
         alvik.stop()
-        sys.exit()
+        break

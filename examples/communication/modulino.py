@@ -1,11 +1,12 @@
 from arduino_alvik import ArduinoAlvik
 from time import sleep_ms
-import sys
+
+
 try:
     from modulino import ModulinoPixels
 except ImportError as e:
-    print("ImportError: ModulinoPixels not installed")
-    sys.exit(-1)
+    print("\nImportError: ModulinoPixels not installed")
+    raise e
 
 alvik = ArduinoAlvik()
 alvik.begin()
@@ -32,4 +33,4 @@ while True:
 
     except KeyboardInterrupt as e:
         alvik.stop()
-        sys.exit()
+        break
