@@ -1,17 +1,5 @@
 from arduino_alvik import ArduinoAlvik
 from time import sleep
-import sys
-
-
-def toggle_value():
-    """
-    This function yields a generator object that toggles values between 0 and 1.
-    :return:
-    """
-    value = 0
-    while True:
-        yield value % 2
-        value += 1
 
 
 def toggle_left_led(custom_text: str, val) -> None:
@@ -21,13 +9,12 @@ def toggle_left_led(custom_text: str, val) -> None:
     :param val: a toggle signal generator
     :return:
     """
-    led_val = next(val)
-    alvik.left_led.set_color(led_val, 0, 0)
-    print(f"RED {'ON' if led_val else 'OFF'}! {custom_text}")
+    alvik.left_led.set_color(val, 0, 0)
+    print(f"LEFT LED -> RED {'ON' if val else 'OFF'}! {custom_text}")
 
 
 alvik = ArduinoAlvik()
-alvik.set_timer('one_shot', 10000, toggle_left_led, ("10 seconds have passed... I won't do this again", toggle_value(), ))
+alvik.set_timer('one_shot', 10000, toggle_left_led, ("10 seconds have passed... I won't do this again", 1, ))
 
 alvik.begin()
 
@@ -68,4 +55,4 @@ while True:
     except KeyboardInterrupt as e:
         print('over')
         alvik.stop()
-        sys.exit()
+        break

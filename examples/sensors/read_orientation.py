@@ -1,6 +1,6 @@
 from arduino_alvik import ArduinoAlvik
 from time import sleep_ms
-import sys
+
 
 alvik = ArduinoAlvik()
 alvik.begin()
@@ -13,4 +13,4 @@ while True:
     except KeyboardInterrupt as e:
         print('over')
         alvik.stop()
-        sys.exit()
+        break
