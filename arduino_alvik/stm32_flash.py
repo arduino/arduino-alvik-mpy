@@ -1,5 +1,4 @@
 import os
-import sys
 from time import sleep_ms
 from machine import UART, Pin
 
@@ -322,8 +321,9 @@ def STM32_writeMEM(file_path: str, toggle: "Generator" = None):
                 print(f"STM32 ERROR FLASHING PAGE: {writeAddress}")
                 return
 
-            sys.stdout.write('\r')
-            sys.stdout.write(f"{int((i/file_pages)*100)}%")
+            percentage = int((i / file_pages) * 100)
+            print("\033[2K\033[1G", end='\r')
+            print(f"Flashing STM32: {percentage:>3}%", end='')
             i = i + 1
             _incrementAddress(writeAddress)
             if toggle is not None:

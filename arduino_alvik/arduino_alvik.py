@@ -107,14 +107,17 @@ class ArduinoAlvik:
         :param is_charging: True if the battery is charging
         :return:
         """
-        sys.stdout.write(bytes('\r'.encode('utf-8')))
+        print("\033[2K\033[1G", end='\r')
         if percentage > 97:
             marks_str = ' \U0001F50B'
         else:
             marks_str = ' \U0001FAAB'
-        charging_str = f' \U0001F50C' if is_charging else ' \U000026A0WARNING: battery is discharging!'
-        word = marks_str + f" {percentage}%" + charging_str + " \t"
-        sys.stdout.write(bytes((word.encode('utf-8'))))
+        if is_charging:
+            charging_str = ' \U0001F50C                                 '
+        else:
+            charging_str = ' \U000026A0 WARNING: battery is discharging!'
+        word = marks_str + f" {percentage}% {charging_str} \t"
+        print(word, end='')
 
     def _lenghty_op(self, iterations=10000000) -> int:
         result = 0
@@ -194,17 +197,13 @@ class ArduinoAlvik:
 
         frame = ''
         for i in range(0, cycles):
-            sys.stdout.write(bytes('\r'.encode('utf-8')))
+            print("\033[2K\033[1G", end='\r')
             pre = ' ' * i
             between = ' ' * (i % 2 + 1)
             post = ' ' * 5
             frame = pre + snake + between + robot + post
-            sys.stdout.write(bytes(frame.encode('utf-8')))
+            print(frame, end='')
             sleep_ms(200)
-
-        sys.stdout.write(bytes('\r'.encode('utf-8')))
-        clear_frame = ' ' * len(frame)
-        sys.stdout.write(bytes(clear_frame.encode('utf-8')))
 
     def begin(self) -> int:
         """
