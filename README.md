@@ -106,7 +106,7 @@ Each color allows to run a different demo as following:
 
 To run a demo, press the `OK touch button`, after selecting the right demo color.
 
-To run a different demo, turn the robot off and on again or reset the Arduino® Nano ESP32.
+To run a different demo, press the `CANCEL touch button` and you will be redirected to the main menu.
 
 ### 1. Touch mode example (RED)
 This example starts with the red leds on.
@@ -125,6 +125,7 @@ The leds will blink in red.
 To start the sequence, press the `OK touch button`.
 
 Pressing the `CANCEL touch button` at any time stops the robot and resets the sequence.
+Pressing the `CANCEL touch button` two times during sequence programming you will be redirected to the main menu.
 
 <br>
 
