@@ -22,8 +22,6 @@ class ArduinoAlvik:
     _events_thread_running = False
     _events_thread_id = None
 
-    _ERROR_VAL = 999
-
     def __new__(cls):
         if not hasattr(cls, '_instance'):
             cls._instance = super(ArduinoAlvik, cls).__new__(cls)
@@ -44,7 +42,6 @@ class ArduinoAlvik:
                                                         rgb_mask=[0b00100000, 0b01000000, 0b10000000])
         self._battery_perc = None
         self._battery_is_charging = None
-        self._battery_error = False
         self._touch_byte = None
         self._move_byte = None
         self._behaviour = None
@@ -691,8 +688,6 @@ class ArduinoAlvik:
             _, battery_perc = self._packeter.unpacketC1F()
             self._battery_is_charging = battery_perc > 0
             self._battery_perc = abs(battery_perc)
-            if self._battery_perc >= ArduinoAlvik._ERROR_VAL:
-                self._battery_error = True
         elif code == ord('d'):
             # distance sensor
             _, self._left_tof, self._center_tof, self._right_tof = self._packeter.unpacketC3I()
@@ -741,11 +736,6 @@ class ArduinoAlvik:
         Returns the battery SOC
         :return:
         """
-
-        if self._battery_error:
-            print("BATTERY ERROR")
-            return None
-
         if self._battery_perc is None:
             return None
         if self._battery_perc > 100:
