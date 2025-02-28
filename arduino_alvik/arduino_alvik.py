@@ -22,6 +22,8 @@ class ArduinoAlvik:
     _events_thread_running = False
     _events_thread_id = None
 
+    _ERROR_VAL = 999
+
     def __new__(cls):
         if not hasattr(cls, '_instance'):
             cls._instance = super(ArduinoAlvik, cls).__new__(cls)
@@ -42,6 +44,7 @@ class ArduinoAlvik:
                                                         rgb_mask=[0b00100000, 0b01000000, 0b10000000])
         self._battery_perc = None
         self._battery_is_charging = None
+        self._battery_error = False
         self._touch_byte = None
         self._move_byte = None
         self._behaviour = None
@@ -432,7 +435,7 @@ class ArduinoAlvik:
         Sets left/right motor angle
         :param left_angle:
         :param right_angle:
-        :param unit: the speed unit of measurement (default: 'rpm')
+        :param unit: the speed unit of measurement (default: 'deg')
         :param blocking:
         :return:
         """
@@ -688,6 +691,8 @@ class ArduinoAlvik:
             _, battery_perc = self._packeter.unpacketC1F()
             self._battery_is_charging = battery_perc > 0
             self._battery_perc = abs(battery_perc)
+            if self._battery_perc >= ArduinoAlvik._ERROR_VAL:
+                self._battery_error = True
         elif code == ord('d'):
             # distance sensor
             _, self._left_tof, self._center_tof, self._right_tof = self._packeter.unpacketC3I()
@@ -736,6 +741,11 @@ class ArduinoAlvik:
         Returns the battery SOC
         :return:
         """
+
+        if self._battery_error:
+            print("BATTERY ERROR")
+            return None
+
         if self._battery_perc is None:
             return None
         if self._battery_perc > 100:
@@ -1258,6 +1268,24 @@ class ArduinoAlvik:
         :return:
         """
         self._move_events.register_callback('on_shake', callback, args)
+
+    def on_lift(self, callback: callable, args: tuple = ()) -> None:
+        """
+        Register callback when Alvik is lifted
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._move_events.register_callback('on_lift', callback, args)
+
+    def on_drop(self, callback: callable, args: tuple = ()) -> None:
+        """
+        Register callback when Alvik is dropped
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._move_events.register_callback('on_drop', callback, args)
 
     def on_x_tilt(self, callback: callable, args: tuple = ()) -> None:
         """
@@ -1965,7 +1993,7 @@ class _ArduinoAlvikMoveEvents(_ArduinoAlvikEvents):
     Event class to handle move events
     """
 
-    available_events = ['on_shake', 'on_x_tilt', 'on_y_tilt', 'on_z_tilt',
+    available_events = ['on_shake', 'on_lift', 'on_drop', 'on_x_tilt', 'on_y_tilt', 'on_z_tilt',
                         'on_nx_tilt', 'on_ny_tilt', 'on_nz_tilt']
 
     NZ_TILT = 0x80
@@ -1991,6 +2019,26 @@ class _ArduinoAlvikMoveEvents(_ArduinoAlvikEvents):
         :return:
         """
         return not bool(current_state & 0b00000001) and bool(new_state & 0b00000001)
+
+    @staticmethod
+    def _is_lifted(current_state, new_state) -> bool:
+        """
+        True if Alvik was lifted
+        :param current_state:
+        :param new_state:
+        :return:
+        """
+        return not bool(current_state & 0b00000010) and bool(new_state & 0b00000010)
+
+    @staticmethod
+    def _is_dropped(current_state, new_state) -> bool:
+        """
+        True if Alvik was dropped
+        :param current_state:
+        :param new_state:
+        :return:
+        """
+        return bool(current_state & 0b00000010) and not bool(new_state & 0b00000010)
 
     @staticmethod
     def _is_x_tilted(current_state, new_state) -> bool:
@@ -2064,6 +2112,12 @@ class _ArduinoAlvikMoveEvents(_ArduinoAlvikEvents):
 
         if self._is_shaken(self._current_state, state):
             self.execute_callback('on_shake')
+
+        if self._is_lifted(self._current_state, state):
+            self.execute_callback('on_lift')
+
+        if self._is_dropped(self._current_state, state):
+            self.execute_callback('on_drop')
 
         if self._is_x_tilted(self._current_state, state):
             self.execute_callback('on_x_tilt')
