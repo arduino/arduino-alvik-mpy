@@ -16,11 +16,30 @@ from .__init__ import __version__
 from .__init__ import __required_firmware_version__
 
 
+def writes_uart(method):
+    def wrapper(*args, **kwargs):
+        with ArduinoAlvik._write_lock:
+            method(*args, **kwargs)
+
+    return wrapper
+
+
+def reads_uart(method):
+    def wrapper(*args, **kwargs):
+        with ArduinoAlvik._read_lock:
+            method(*args, **kwargs)
+
+    return wrapper
+
+
 class ArduinoAlvik:
     _update_thread_running = False
     _update_thread_id = None
     _events_thread_running = False
     _events_thread_id = None
+
+    _write_lock = _thread.allocate_lock()
+    _read_lock = _thread.allocate_lock()
 
     def __new__(cls):
         if not hasattr(cls, '_instance'):
@@ -119,7 +138,8 @@ class ArduinoAlvik:
         word = marks_str + f" {percentage}% {charging_str} \t"
         print(word, end='')
 
-    def _lenghty_op(self, iterations=10000000) -> int:
+    @staticmethod
+    def _lengthy_op(self, iterations=10000000) -> int:
         result = 0
         for i in range(1, iterations):
             result += i * i
@@ -134,7 +154,7 @@ class ArduinoAlvik:
         self.i2c.set_single_thread(True)
 
         if blocking:
-            self._lenghty_op(50000)
+            self._lengthy_op(50000)
         else:
             sleep_ms(500)
         led_val = 0
@@ -157,7 +177,7 @@ class ArduinoAlvik:
                 self._battery_perc = abs(soc_perc)
                 self._print_battery_status(round(soc_perc), self._battery_is_charging)
                 if blocking:
-                    self._lenghty_op(10000)
+                    self._lengthy_op(10000)
                 else:
                     sleep_ms(delay_)
                 if soc_perc > 97:
@@ -279,6 +299,7 @@ class ArduinoAlvik:
             return False
 
     @staticmethod
+    @reads_uart
     def _flush_uart():
         """
         Empties the UART buffer
@@ -313,6 +334,7 @@ class ArduinoAlvik:
                 # print(self._last_ack)
                 sleep_ms(100)
 
+    @writes_uart
     def is_target_reached(self) -> bool:
         """
         Returns True if robot has sent an M or R acknowledgment.
@@ -330,6 +352,7 @@ class ArduinoAlvik:
             return True
         return False
 
+    @writes_uart
     def set_behaviour(self, behaviour: int):
         """
         Sets the behaviour of Alvik
@@ -339,6 +362,7 @@ class ArduinoAlvik:
         self._packeter.packetC1B(ord('B'), behaviour & 0xFF)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
 
+    @writes_uart
     def rotate(self, angle: float, unit: str = 'deg', blocking: bool = True):
         """
         Rotates the robot by given angle
@@ -355,6 +379,7 @@ class ArduinoAlvik:
         if blocking:
             self._wait_for_target(idle_time=(angle / MOTOR_CONTROL_DEG_S))
 
+    @writes_uart
     def move(self, distance: float, unit: str = 'cm', blocking: bool = True):
         """
         Moves the robot by given distance
@@ -408,6 +433,7 @@ class ArduinoAlvik:
         """
         return self.left_wheel.get_speed(unit), self.right_wheel.get_speed(unit)
 
+    @writes_uart
     def set_wheels_speed(self, left_speed: float, right_speed: float, unit: str = 'rpm'):
         """
         Sets left/right motor speed
@@ -427,6 +453,7 @@ class ArduinoAlvik:
         self._packeter.packetC2F(ord('J'), left_speed, right_speed)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
 
+    @writes_uart
     def set_wheels_position(self, left_angle: float, right_angle: float, unit: str = 'deg', blocking: bool = True):
         """
         Sets left/right motor angle
@@ -490,6 +517,7 @@ class ArduinoAlvik:
 
         return self._left_line, self._center_line, self._right_line
 
+    @writes_uart
     def drive(self, linear_velocity: float, angular_velocity: float, linear_unit: str = 'cm/s',
               angular_unit: str = 'deg/s'):
         """
@@ -530,6 +558,7 @@ class ArduinoAlvik:
 
         return convert_speed(self._linear_velocity, 'mm/s', linear_unit), angular_velocity
 
+    @writes_uart
     def reset_pose(self, x: float, y: float, theta: float, distance_unit: str = 'cm', angle_unit: str = 'deg'):
         """
         Resets the robot pose
@@ -559,6 +588,7 @@ class ArduinoAlvik:
                 convert_distance(self._y, 'mm', distance_unit),
                 convert_angle(self._theta, 'deg', angle_unit))
 
+    @writes_uart
     def set_servo_positions(self, a_position: int, b_position: int):
         """
         Sets A/B servomotor angle
@@ -586,10 +616,16 @@ class ArduinoAlvik:
         """
         return self._last_ack
 
-    # def send_ack(self):
-    #     self._packeter.packetC1B(ord('X'), ACK_)
-    #     uart.write(self._packeter.msg[0:self._packeter.msg_size])
+    @writes_uart
+    def send_ack(self, ack: str = 'K'):
+        """
+        Sends an ack message on UART
+        :return:
+        """
+        self._packeter.packetC1B(ord('X'), ord(ack))
+        uart.write(self._packeter.msg[0:self._packeter.msg_size])
 
+    @writes_uart
     def _set_leds(self, led_state: int):
         """
         Sets the LEDs state
@@ -651,6 +687,7 @@ class ArduinoAlvik:
             self._read_message()
             sleep_ms(delay_)
 
+    @reads_uart
     def _read_message(self) -> None:
         """
         Read a message from the uC
@@ -1539,7 +1576,6 @@ class _ArduinoAlvikI2C:
             return i2c.writeto_mem(addr, memaddr, buf, addrsize=addrsize)
 
 
-
 class _ArduinoAlvikServo:
 
     def __init__(self, packeter: ucPack, label: str, servo_id: int, position: list[int | None]):
@@ -1547,7 +1583,8 @@ class _ArduinoAlvikServo:
         self._label = label
         self._id = servo_id
         self._position = position
-
+    
+    @writes_uart
     def set_position(self, position):
         """
         Sets the position of the servo
@@ -1576,7 +1613,8 @@ class _ArduinoAlvikWheel:
         self._speed = None
         self._position = None
         self._alvik = alvik
-
+    
+    @writes_uart
     def reset(self, initial_position: float = 0.0, unit: str = 'deg'):
         """
         Resets the wheel reference position
@@ -1588,6 +1626,7 @@ class _ArduinoAlvikWheel:
         self._packeter.packetC2B1F(ord('W'), self._label & 0xFF, ord('Z'), initial_position)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
 
+    @writes_uart
     def set_pid_gains(self, kp: float = MOTOR_KP_DEFAULT, ki: float = MOTOR_KI_DEFAULT, kd: float = MOTOR_KD_DEFAULT):
         """
         Set PID gains for Alvik wheels
@@ -1607,6 +1646,7 @@ class _ArduinoAlvikWheel:
         """
         self.set_speed(0)
 
+    @writes_uart
     def set_speed(self, velocity: float, unit: str = 'rpm'):
         """
         Sets the motor speed
@@ -1643,6 +1683,7 @@ class _ArduinoAlvikWheel:
         """
         return convert_angle(self._position, 'deg', unit)
 
+    @writes_uart
     def set_position(self, position: float, unit: str = 'deg', blocking: bool = True):
         """
         Sets left/right motor speed
@@ -1673,6 +1714,7 @@ class _ArduinoAlvikRgbLed:
         self._rgb_mask = rgb_mask
         self._led_state = led_state
 
+    @writes_uart
     def set_color(self, red: bool, green: bool, blue: bool):
         """
         Sets the LED's r,g,b state
