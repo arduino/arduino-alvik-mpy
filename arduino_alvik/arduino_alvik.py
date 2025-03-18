@@ -19,7 +19,7 @@ from .__init__ import __required_firmware_version__
 def writes_uart(method):
     def wrapper(*args, **kwargs):
         with ArduinoAlvik._write_lock:
-            method(*args, **kwargs)
+            return method(*args, **kwargs)
 
     return wrapper
 
@@ -27,7 +27,7 @@ def writes_uart(method):
 def reads_uart(method):
     def wrapper(*args, **kwargs):
         with ArduinoAlvik._read_lock:
-            method(*args, **kwargs)
+            return method(*args, **kwargs)
 
     return wrapper
 
