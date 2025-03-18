@@ -32,14 +32,55 @@ def reads_uart(method):
     return wrapper
 
 
+class _AlvikRLock:
+    def __init__(self):
+        """Alvik re-entrant Lock implementation"""
+        self._lock = _thread.allocate_lock()
+        self._owner = None
+        self._count = 0
+
+    def acquire(self):
+        tid = _thread.get_ident()
+
+        if self._owner == tid:
+            self._count += 1
+            return True
+
+        self._lock.acquire()
+        self._owner = tid
+        self._count = 1
+        return True
+
+    def release(self):
+        tid = _thread.get_ident()
+
+        if self._owner != tid:
+            raise RuntimeError("Cannot release an unowned lock")
+
+        self._count -= 1
+        if self._count == 0:
+            self._owner = None
+            self._lock.release()
+
+    def locked(self):
+        return self._lock.locked()
+
+    def __enter__(self):
+        self.acquire()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.release()
+
+
 class ArduinoAlvik:
     _update_thread_running = False
     _update_thread_id = None
     _events_thread_running = False
     _events_thread_id = None
 
-    _write_lock = _thread.allocate_lock()
-    _read_lock = _thread.allocate_lock()
+    _write_lock = _AlvikRLock()
+    _read_lock = _AlvikRLock()
 
     def __new__(cls):
         if not hasattr(cls, '_instance'):
@@ -189,13 +230,13 @@ class ArduinoAlvik:
                     led_val = (led_val + 1) % 2
             self.i2c.set_single_thread(False)
             if self.is_on():
-                print("********** Alvik is on **********")
+                print("\n********** Alvik is on **********")
         except KeyboardInterrupt:
             self.stop()
             sys.exit()
         except Exception as e:
             pass
-            print(f'Unable to read SOC: {e}')
+            print(f'\nUnable to read SOC: {e}')
         finally:
             LEDR.value(1)
             LEDG.value(1)
@@ -252,7 +293,7 @@ class ArduinoAlvik:
         self.set_behaviour(2)
         self._set_color_reference()
         if self._has_events_registered():
-            print('Starting events thread')
+            print('\n********** Starting events thread **********\n')
             self._start_events_thread()
         self.set_servo_positions(90, 90)
         return 0
