@@ -906,6 +906,13 @@ class ArduinoAlvik:
         """
         return bool(self._move_bits & 0b00000001)
 
+    def get_lifted(self) -> bool:
+        """
+        Returns true if Alvik is lifted
+        :return:
+        """
+        return bool(self._move_bits & 0b00000010)
+
     def get_tilt(self) -> str:
         """
         Returns the tilt string eg: "X", "-Z" etc
