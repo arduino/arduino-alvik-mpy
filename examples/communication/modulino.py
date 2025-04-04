@@ -14,8 +14,7 @@ alvik.begin()
 pixels = ModulinoPixels(alvik.i2c)
 
 if not pixels.connected:
-    print("🤷 No pixel modulino found")
-    sys.exit(-2)
+    raise Exception("🤷 No pixel modulino found")
 
 while True:
     try:

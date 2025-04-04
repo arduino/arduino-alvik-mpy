@@ -1,4 +1,3 @@
-import sys
 import struct
 from machine import I2C
 import _thread
@@ -231,12 +230,15 @@ class ArduinoAlvik:
             self.i2c.set_single_thread(False)
             if self.is_on():
                 print("\n********** Alvik is on **********")
-        except KeyboardInterrupt:
+        except KeyboardInterrupt as e:
             self.stop()
-            sys.exit()
-        except Exception as e:
-            pass
+            raise e
+        except OSError as e:
             print(f'\nUnable to read SOC: {e}')
+            raise e
+        except Exception as e:
+            print(f'\nUnhandled exception: {e} {type(e)}')
+            raise e
         finally:
             LEDR.value(1)
             LEDG.value(1)
@@ -285,8 +287,8 @@ class ArduinoAlvik:
         self._snake_robot(1000)
         self._wait_for_ack()
         if not self._wait_for_fw_check():
-            print('\n********** PLEASE UPDATE ALVIK FIRMWARE (required: '+'.'.join(map(str,self._required_fw_version))+')! Check documentation **********\n')
-            sys.exit(-2)
+            self.stop()
+            raise Exception('\n********** PLEASE UPDATE ALVIK FIRMWARE (required: '+'.'.join(map(str,self._required_fw_version))+')! Check documentation **********\n')
         self._snake_robot(2000)
         self.set_illuminator(True)
         self.set_behaviour(1)
