@@ -1,4 +1,3 @@
-import sys
 import struct
 from machine import I2C
 import _thread
@@ -16,11 +15,71 @@ from .__init__ import __version__
 from .__init__ import __required_firmware_version__
 
 
+def writes_uart(method):
+    def wrapper(*args, **kwargs):
+        with ArduinoAlvik._write_lock:
+            return method(*args, **kwargs)
+
+    return wrapper
+
+
+def reads_uart(method):
+    def wrapper(*args, **kwargs):
+        with ArduinoAlvik._read_lock:
+            return method(*args, **kwargs)
+
+    return wrapper
+
+
+class _AlvikRLock:
+    def __init__(self):
+        """Alvik re-entrant Lock implementation"""
+        self._lock = _thread.allocate_lock()
+        self._owner = None
+        self._count = 0
+
+    def acquire(self):
+        tid = _thread.get_ident()
+
+        if self._owner == tid:
+            self._count += 1
+            return True
+
+        self._lock.acquire()
+        self._owner = tid
+        self._count = 1
+        return True
+
+    def release(self):
+        tid = _thread.get_ident()
+
+        if self._owner != tid:
+            raise RuntimeError("Cannot release an unowned lock")
+
+        self._count -= 1
+        if self._count == 0:
+            self._owner = None
+            self._lock.release()
+
+    def locked(self):
+        return self._lock.locked()
+
+    def __enter__(self):
+        self.acquire()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.release()
+
+
 class ArduinoAlvik:
     _update_thread_running = False
     _update_thread_id = None
     _events_thread_running = False
     _events_thread_id = None
+
+    _write_lock = _AlvikRLock()
+    _read_lock = _AlvikRLock()
 
     def __new__(cls):
         if not hasattr(cls, '_instance'):
@@ -107,16 +166,20 @@ class ArduinoAlvik:
         :param is_charging: True if the battery is charging
         :return:
         """
-        sys.stdout.write(bytes('\r'.encode('utf-8')))
+        print("\033[2K\033[1G", end='\r')
         if percentage > 97:
             marks_str = ' \U0001F50B'
         else:
             marks_str = ' \U0001FAAB'
-        charging_str = f' \U0001F50C' if is_charging else ' \U000026A0WARNING: battery is discharging!'
-        word = marks_str + f" {percentage}%" + charging_str + " \t"
-        sys.stdout.write(bytes((word.encode('utf-8'))))
+        if is_charging:
+            charging_str = ' \U0001F50C                                 '
+        else:
+            charging_str = ' \U000026A0 WARNING: battery is discharging!'
+        word = marks_str + f" {percentage}% {charging_str} \t"
+        print(word, end='')
 
-    def _lenghty_op(self, iterations=10000000) -> int:
+    @staticmethod
+    def _lengthy_op(self, iterations=10000000) -> int:
         result = 0
         for i in range(1, iterations):
             result += i * i
@@ -131,7 +194,7 @@ class ArduinoAlvik:
         self.i2c.set_single_thread(True)
 
         if blocking:
-            self._lenghty_op(50000)
+            self._lengthy_op(50000)
         else:
             sleep_ms(500)
         led_val = 0
@@ -154,7 +217,7 @@ class ArduinoAlvik:
                 self._battery_perc = abs(soc_perc)
                 self._print_battery_status(round(soc_perc), self._battery_is_charging)
                 if blocking:
-                    self._lenghty_op(10000)
+                    self._lengthy_op(10000)
                 else:
                     sleep_ms(delay_)
                 if soc_perc > 97:
@@ -166,13 +229,16 @@ class ArduinoAlvik:
                     led_val = (led_val + 1) % 2
             self.i2c.set_single_thread(False)
             if self.is_on():
-                print("********** Alvik is on **********")
-        except KeyboardInterrupt:
+                print("\n********** Alvik is on **********")
+        except KeyboardInterrupt as e:
             self.stop()
-            sys.exit()
+            raise e
+        except OSError as e:
+            print(f'\nUnable to read SOC: {e}')
+            raise e
         except Exception as e:
-            pass
-            print(f'Unable to read SOC: {e}')
+            print(f'\nUnhandled exception: {e} {type(e)}')
+            raise e
         finally:
             LEDR.value(1)
             LEDG.value(1)
@@ -194,17 +260,13 @@ class ArduinoAlvik:
 
         frame = ''
         for i in range(0, cycles):
-            sys.stdout.write(bytes('\r'.encode('utf-8')))
+            print("\033[2K\033[1G", end='\r')
             pre = ' ' * i
             between = ' ' * (i % 2 + 1)
             post = ' ' * 5
             frame = pre + snake + between + robot + post
-            sys.stdout.write(bytes(frame.encode('utf-8')))
+            print(frame, end='')
             sleep_ms(200)
-
-        sys.stdout.write(bytes('\r'.encode('utf-8')))
-        clear_frame = ' ' * len(frame)
-        sys.stdout.write(bytes(clear_frame.encode('utf-8')))
 
     def begin(self) -> int:
         """
@@ -225,15 +287,15 @@ class ArduinoAlvik:
         self._snake_robot(1000)
         self._wait_for_ack()
         if not self._wait_for_fw_check():
-            print('\n********** PLEASE UPDATE ALVIK FIRMWARE (required: '+'.'.join(map(str,self._required_fw_version))+')! Check documentation **********\n')
-            sys.exit(-2)
+            self.stop()
+            raise Exception('\n********** PLEASE UPDATE ALVIK FIRMWARE (required: '+'.'.join(map(str,self._required_fw_version))+')! Check documentation **********\n')
         self._snake_robot(2000)
         self.set_illuminator(True)
         self.set_behaviour(1)
         self.set_behaviour(2)
         self._set_color_reference()
         if self._has_events_registered():
-            print('Starting events thread')
+            print('\n********** Starting events thread **********\n')
             self._start_events_thread()
         self.set_servo_positions(90, 90)
         return 0
@@ -280,6 +342,7 @@ class ArduinoAlvik:
             return False
 
     @staticmethod
+    @reads_uart
     def _flush_uart():
         """
         Empties the UART buffer
@@ -314,6 +377,7 @@ class ArduinoAlvik:
                 # print(self._last_ack)
                 sleep_ms(100)
 
+    @writes_uart
     def is_target_reached(self) -> bool:
         """
         Returns True if robot has sent an M or R acknowledgment.
@@ -331,6 +395,7 @@ class ArduinoAlvik:
             return True
         return False
 
+    @writes_uart
     def set_behaviour(self, behaviour: int):
         """
         Sets the behaviour of Alvik
@@ -340,6 +405,7 @@ class ArduinoAlvik:
         self._packeter.packetC1B(ord('B'), behaviour & 0xFF)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
 
+    @writes_uart
     def rotate(self, angle: float, unit: str = 'deg', blocking: bool = True):
         """
         Rotates the robot by given angle
@@ -356,6 +422,7 @@ class ArduinoAlvik:
         if blocking:
             self._wait_for_target(idle_time=(angle / MOTOR_CONTROL_DEG_S))
 
+    @writes_uart
     def move(self, distance: float, unit: str = 'cm', blocking: bool = True):
         """
         Moves the robot by given distance
@@ -409,6 +476,7 @@ class ArduinoAlvik:
         """
         return self.left_wheel.get_speed(unit), self.right_wheel.get_speed(unit)
 
+    @writes_uart
     def set_wheels_speed(self, left_speed: float, right_speed: float, unit: str = 'rpm'):
         """
         Sets left/right motor speed
@@ -428,12 +496,13 @@ class ArduinoAlvik:
         self._packeter.packetC2F(ord('J'), left_speed, right_speed)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
 
+    @writes_uart
     def set_wheels_position(self, left_angle: float, right_angle: float, unit: str = 'deg', blocking: bool = True):
         """
         Sets left/right motor angle
         :param left_angle:
         :param right_angle:
-        :param unit: the speed unit of measurement (default: 'rpm')
+        :param unit: the speed unit of measurement (default: 'deg')
         :param blocking:
         :return:
         """
@@ -491,6 +560,7 @@ class ArduinoAlvik:
 
         return self._left_line, self._center_line, self._right_line
 
+    @writes_uart
     def drive(self, linear_velocity: float, angular_velocity: float, linear_unit: str = 'cm/s',
               angular_unit: str = 'deg/s'):
         """
@@ -531,6 +601,7 @@ class ArduinoAlvik:
 
         return convert_speed(self._linear_velocity, 'mm/s', linear_unit), angular_velocity
 
+    @writes_uart
     def reset_pose(self, x: float, y: float, theta: float, distance_unit: str = 'cm', angle_unit: str = 'deg'):
         """
         Resets the robot pose
@@ -560,6 +631,7 @@ class ArduinoAlvik:
                 convert_distance(self._y, 'mm', distance_unit),
                 convert_angle(self._theta, 'deg', angle_unit))
 
+    @writes_uart
     def set_servo_positions(self, a_position: int, b_position: int):
         """
         Sets A/B servomotor angle
@@ -587,10 +659,16 @@ class ArduinoAlvik:
         """
         return self._last_ack
 
-    # def send_ack(self):
-    #     self._packeter.packetC1B(ord('X'), ACK_)
-    #     uart.write(self._packeter.msg[0:self._packeter.msg_size])
+    @writes_uart
+    def send_ack(self, ack: str = 'K'):
+        """
+        Sends an ack message on UART
+        :return:
+        """
+        self._packeter.packetC1B(ord('X'), ord(ack))
+        uart.write(self._packeter.msg[0:self._packeter.msg_size])
 
+    @writes_uart
     def _set_leds(self, led_state: int):
         """
         Sets the LEDs state
@@ -652,6 +730,7 @@ class ArduinoAlvik:
             self._read_message()
             sleep_ms(delay_)
 
+    @reads_uart
     def _read_message(self) -> None:
         """
         Read a message from the uC
@@ -828,6 +907,13 @@ class ArduinoAlvik:
         :return:
         """
         return bool(self._move_bits & 0b00000001)
+
+    def get_lifted(self) -> bool:
+        """
+        Returns true if Alvik is lifted
+        :return:
+        """
+        return bool(self._move_bits & 0b00000010)
 
     def get_tilt(self) -> str:
         """
@@ -1260,6 +1346,24 @@ class ArduinoAlvik:
         """
         self._move_events.register_callback('on_shake', callback, args)
 
+    def on_lift(self, callback: callable, args: tuple = ()) -> None:
+        """
+        Register callback when Alvik is lifted
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._move_events.register_callback('on_lift', callback, args)
+
+    def on_drop(self, callback: callable, args: tuple = ()) -> None:
+        """
+        Register callback when Alvik is dropped
+        :param callback:
+        :param args:
+        :return:
+        """
+        self._move_events.register_callback('on_drop', callback, args)
+
     def on_x_tilt(self, callback: callable, args: tuple = ()) -> None:
         """
         Register callback when Alvik is tilted on X-axis
@@ -1522,7 +1626,6 @@ class _ArduinoAlvikI2C:
             return i2c.writeto_mem(addr, memaddr, buf, addrsize=addrsize)
 
 
-
 class _ArduinoAlvikServo:
 
     def __init__(self, packeter: ucPack, label: str, servo_id: int, position: list[int | None]):
@@ -1530,7 +1633,8 @@ class _ArduinoAlvikServo:
         self._label = label
         self._id = servo_id
         self._position = position
-
+    
+    @writes_uart
     def set_position(self, position):
         """
         Sets the position of the servo
@@ -1559,7 +1663,8 @@ class _ArduinoAlvikWheel:
         self._speed = None
         self._position = None
         self._alvik = alvik
-
+    
+    @writes_uart
     def reset(self, initial_position: float = 0.0, unit: str = 'deg'):
         """
         Resets the wheel reference position
@@ -1571,6 +1676,7 @@ class _ArduinoAlvikWheel:
         self._packeter.packetC2B1F(ord('W'), self._label & 0xFF, ord('Z'), initial_position)
         uart.write(self._packeter.msg[0:self._packeter.msg_size])
 
+    @writes_uart
     def set_pid_gains(self, kp: float = MOTOR_KP_DEFAULT, ki: float = MOTOR_KI_DEFAULT, kd: float = MOTOR_KD_DEFAULT):
         """
         Set PID gains for Alvik wheels
@@ -1590,6 +1696,7 @@ class _ArduinoAlvikWheel:
         """
         self.set_speed(0)
 
+    @writes_uart
     def set_speed(self, velocity: float, unit: str = 'rpm'):
         """
         Sets the motor speed
@@ -1626,6 +1733,7 @@ class _ArduinoAlvikWheel:
         """
         return convert_angle(self._position, 'deg', unit)
 
+    @writes_uart
     def set_position(self, position: float, unit: str = 'deg', blocking: bool = True):
         """
         Sets left/right motor speed
@@ -1656,6 +1764,7 @@ class _ArduinoAlvikRgbLed:
         self._rgb_mask = rgb_mask
         self._led_state = led_state
 
+    @writes_uart
     def set_color(self, red: bool, green: bool, blue: bool):
         """
         Sets the LED's r,g,b state
@@ -1966,7 +2075,7 @@ class _ArduinoAlvikMoveEvents(_ArduinoAlvikEvents):
     Event class to handle move events
     """
 
-    available_events = ['on_shake', 'on_x_tilt', 'on_y_tilt', 'on_z_tilt',
+    available_events = ['on_shake', 'on_lift', 'on_drop', 'on_x_tilt', 'on_y_tilt', 'on_z_tilt',
                         'on_nx_tilt', 'on_ny_tilt', 'on_nz_tilt']
 
     NZ_TILT = 0x80
@@ -1992,6 +2101,26 @@ class _ArduinoAlvikMoveEvents(_ArduinoAlvikEvents):
         :return:
         """
         return not bool(current_state & 0b00000001) and bool(new_state & 0b00000001)
+
+    @staticmethod
+    def _is_lifted(current_state, new_state) -> bool:
+        """
+        True if Alvik was lifted
+        :param current_state:
+        :param new_state:
+        :return:
+        """
+        return not bool(current_state & 0b00000010) and bool(new_state & 0b00000010)
+
+    @staticmethod
+    def _is_dropped(current_state, new_state) -> bool:
+        """
+        True if Alvik was dropped
+        :param current_state:
+        :param new_state:
+        :return:
+        """
+        return bool(current_state & 0b00000010) and not bool(new_state & 0b00000010)
 
     @staticmethod
     def _is_x_tilted(current_state, new_state) -> bool:
@@ -2065,6 +2194,12 @@ class _ArduinoAlvikMoveEvents(_ArduinoAlvikEvents):
 
         if self._is_shaken(self._current_state, state):
             self.execute_callback('on_shake')
+
+        if self._is_lifted(self._current_state, state):
+            self.execute_callback('on_lift')
+
+        if self._is_dropped(self._current_state, state):
+            self.execute_callback('on_drop')
 
         if self._is_x_tilted(self._current_state, state):
             self.execute_callback('on_x_tilt')

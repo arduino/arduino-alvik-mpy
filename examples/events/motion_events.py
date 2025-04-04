@@ -31,6 +31,8 @@ def simple_print(custom_text: str = '') -> None:
 
 alvik = ArduinoAlvik()
 alvik.on_shake(toggle_left_led, ("ALVIK WAS SHAKEN... YOU MAKE ME SHIVER :)", toggle_value(), ))
+alvik.on_lift(simple_print, ("ALVIK WAS LIFTED",))
+alvik.on_drop(simple_print, ("ALVIK WAS DROPPED",))
 alvik.on_x_tilt(simple_print, ("TILTED ON X",))
 alvik.on_nx_tilt(simple_print, ("TILTED ON -X",))
 alvik.on_y_tilt(simple_print, ("TILTED ON Y",))
