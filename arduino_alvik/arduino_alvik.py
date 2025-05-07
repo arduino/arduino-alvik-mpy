@@ -86,7 +86,8 @@ class ArduinoAlvik:
             cls._instance = super(ArduinoAlvik, cls).__new__(cls)
         return cls._instance
 
-    def __init__(self):
+    def __init__(self, stack_size = THREAD_STACK_SIZE):
+        _thread.stack_size(stack_size)
         self.i2c = _ArduinoAlvikI2C(A4, A5)
         self._packeter = ucPack(200)
         self.left_wheel = _ArduinoAlvikWheel(self._packeter, ord('L'), alvik=self)
