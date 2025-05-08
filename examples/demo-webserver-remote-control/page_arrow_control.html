@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>ESP32 Arrow Control Portal</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #f5f5f5;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    #arrowContainer {
+      display: grid;
+      grid-template-rows: auto auto auto;
+      grid-template-columns: auto auto auto;
+      gap: 10px;
+      justify-items: center;
+      align-items: center;
+    }
+    /* Hide unused grid cells */
+    #arrowContainer div.empty {
+      visibility: hidden;
+    }
+    #arrowContainer button {
+      width: 60px;
+      height: 60px;
+      font-size: 24px;
+      border: none;
+      border-radius: 10px;
+      background: #007BFF;
+      color: #fff;
+      cursor: pointer;
+      user-select: none;
+    }
+    #debug {
+      margin-top: 20px;
+      background: #fff;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    /* Styling for the stop button */
+    #stopBtn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #d9534f;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="arrowContainer">
+    <div class="empty"></div>
+    <button id="upBtn">&#9650;</button>
+    <div class="empty"></div>
+    <button id="leftBtn">&#9664;</button>
+    <div class="empty"></div>
+    <button id="rightBtn">&#9654;</button>
+    <div class="empty"></div>
+    <button id="downBtn">&#9660;</button>
+    <div class="empty"></div>
+  </div>
+  <div id="debug">Waiting for command...</div>
+  <button id="stopBtn">Stop Application</button>
+  <script>
+    // Function to send the command to the ESP32.
+    function sendCommand(x, y, evt) {
+      var debugDiv = document.getElementById('debug');
+      debugDiv.innerText = "Command: " + evt + " | x: " + x + " y: " + y;
+      console.log("Sending command:", evt, "x:", x, "y:", y);
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", "/update?x=" + x + "&y=" + y + "&evt=" + evt, true);
+      xhr.send();
+    }
+    
+    // Helper to add continuous push-button functionality.
+    function addPushButton(buttonID, x, y, label) {
+      var btn = document.getElementById(buttonID);
+      var intervalID = null;
+      
+      function startSending(e) {
+        e.preventDefault();
+        if (!intervalID) {
+          intervalID = setInterval(function() {
+            sendCommand(x, y, label);
+          }, 100);  // send every 100 ms; adjust as needed
+        }
+      }
+      
+      function stopSending(e) {
+        e.preventDefault();
+        if (intervalID) {
+          clearInterval(intervalID);
+          intervalID = null;
+        }
+        // Send a stop command (0,0).
+        sendCommand(0, 0, "stop");
+      }
+      
+      // For desktop.
+      btn.addEventListener("mousedown", startSending);
+      btn.addEventListener("mouseup", stopSending);
+      btn.addEventListener("mouseleave", stopSending);
+      
+      // For touch devices.
+      btn.addEventListener("touchstart", startSending);
+      btn.addEventListener("touchend", stopSending);
+      btn.addEventListener("touchcancel", stopSending);
+    }
+    
+    // Attach continuous push-button functionality to each arrow.
+    addPushButton("upBtn", 0, -1, "up");
+    addPushButton("downBtn", 0, 1, "down");
+    addPushButton("leftBtn", -1, 0, "left");
+    addPushButton("rightBtn", 1, 0, "right");
+    
+    // Event handler for the Stop Application button.
+    document.getElementById("stopBtn").addEventListener("click", function(e) {
+      e.preventDefault();
+      // Redirect to /stop, which triggers the server to stop the application.
+      window.location.href = "/stop";
+    });
+  </script>
+</body>
+</html>
