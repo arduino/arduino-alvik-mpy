@@ -13,7 +13,7 @@ if USES_HARDWARE == "HW0":
     BLACK_CAL = [160, 200, 190]
 
     min_saturation = 0.1
-    balck_value = 0.05
+    black_value = 0.05
     grey_value = 0.15
     light_grey_value = 0.8
     min_color_value = 0.1
@@ -28,7 +28,7 @@ elif USES_HARDWARE == "HW1":
     BLACK_CAL = [385, 809, 411]
 
     min_saturation = 0.1
-    balck_value = 0.05
+    black_value = 0.05
     grey_value = 0.15
     light_grey_value = 0.17
     min_color_value = 0.1

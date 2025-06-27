@@ -1121,7 +1121,7 @@ class ArduinoAlvik:
             return 'UNDEFINED'
 
         if s < min_saturation:
-            if v < balck_value:
+            if v < black_value:
                 label = 'BLACK'
             elif v < grey_value:
                 label = 'GREY'
