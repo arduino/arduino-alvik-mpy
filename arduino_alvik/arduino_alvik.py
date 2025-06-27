@@ -1120,34 +1120,34 @@ class ArduinoAlvik:
         if None in [h, s, v]:
             return 'UNDEFINED'
 
-        if s < 0.1:
-            if v < 0.05:
+        if s < min_saturation:
+            if v < balck_value:
                 label = 'BLACK'
-            elif v < 0.15:
+            elif v < grey_value:
                 label = 'GREY'
-            elif v < 0.8:
+            elif v < light_grey_value:
                 label = 'LIGHT GREY'
             else:
                 label = 'WHITE'
         else:
-            if v > 0.1:
-                if 20 <= h < 90:
+            if v > min_color_value:
+                if hsv_limits["thresholds"][0] <= h < hsv_limits["thresholds"][1]:
                     label = 'YELLOW'
-                elif 90 <= h < 140:
+                elif hsv_limits["thresholds"][1] <= h < hsv_limits["thresholds"][2]:
                     label = 'LIGHT GREEN'
-                elif 140 <= h < 170:
+                elif hsv_limits["thresholds"][2] <= h < hsv_limits["thresholds"][3]:
                     label = 'GREEN'
-                elif 170 <= h < 210:
+                elif hsv_limits["thresholds"][3] <= h < hsv_limits["thresholds"][4]:
                     label = 'LIGHT BLUE'
-                elif 210 <= h < 250:
+                elif hsv_limits["thresholds"][4] <= h < hsv_limits["thresholds"][5]:
                     label = 'BLUE'
-                elif 250 <= h < 280:
+                elif hsv_limits["thresholds"][5] <= h < hsv_limits["thresholds"][6]:
                     label = 'VIOLET'
                 else:  # h<20 or h>=280 is more problematic
-                    if v < 0.5 and s < 0.45:
+                    if v < hsv_limits["high_h_v_thre"][0] and s < hsv_limits["high_h_s_thre"][0]:
                         label = 'BROWN'
                     else:
-                        if v > 0.77:
+                        if v > hsv_limits["high_h_v_thre"][1]:
                             label = 'ORANGE'
                         else:
                             label = 'RED'
