@@ -110,6 +110,7 @@ class ArduinoAlvik:
         self._blue = None
         self._white_cal = None
         self._black_cal = None
+        self._color_thresholds = hw0_color_thresholds
         self._left_line = None
         self._center_line = None
         self._right_line = None
@@ -138,6 +139,7 @@ class ArduinoAlvik:
         self._waiting_ack = None
         self._version = list(map(int, __version__.split('.')))
         self._fw_version = [None, None, None]
+        self._hw_version = None
         self._required_fw_version = list(map(int, __required_firmware_version__.split('.')))
         self._touch_events = _ArduinoAlvikTouchEvents()
         self._move_events = _ArduinoAlvikMoveEvents()
@@ -807,6 +809,8 @@ class ArduinoAlvik:
         elif code == 0x7E:
             # firmware version
             _, *self._fw_version = self._packeter.unpacketC3B()
+            self._hw_version = self._fw_version[0] >> 4
+            self._fw_version[0] &= 0x0F
         else:
             return -1
 
@@ -954,14 +958,21 @@ class ArduinoAlvik:
         return value
 
     def _set_color_reference(self):
+
+        if self._hw_version == HW_REVISION_1_6:
+            self._color_thresholds = hw1_color_thresholds
+        # Insert other hardware revisions here
+        else:   # fallback to HW_REVISION_1_3
+            self._color_thresholds = hw0_color_thresholds
+
         try:
             from color_calibration import BLACK_CAL as _B
         except ImportError:
-            _B = BLACK_CAL
+            _B = self._color_thresholds["BLACK_CAL"]
         try:
             from color_calibration import WHITE_CAL as _W
         except ImportError:
-            _W = WHITE_CAL
+            _W = self._color_thresholds["WHITE_CAL"]
 
         self._black_cal = _B
         self._white_cal = _W
@@ -1105,49 +1116,52 @@ class ArduinoAlvik:
         Returns the label of the color as recognized by the sensor
         :return:
         """
-        return self.hsv2label(*self.get_color(color_format='hsv'))
+        return self.hsv2label(*self.get_color(color_format='hsv'), self._color_thresholds)
 
     @staticmethod
-    def hsv2label(h, s, v) -> str:
+    def hsv2label(h, s, v, thresholds) -> str:
         """
         Returns the color label corresponding to the given normalized HSV color input
-        :param h:
-        :param s:
-        :param v:
+        :param h: hue
+        :param s: saturation
+        :param v: value
+        :param thresholds: a dictionary with the color thresholds
         :return:
         """
 
         if None in [h, s, v]:
             return 'UNDEFINED'
 
-        if s < 0.1:
-            if v < 0.05:
+        hsv_limits = thresholds["HSV_LIMITS"]
+
+        if s < thresholds["MIN_SATURATION"]:
+            if v < thresholds["BLACK_VALUE"]:
                 label = 'BLACK'
-            elif v < 0.15:
+            elif v < thresholds["GREY_VALUE"]:
                 label = 'GREY'
-            elif v < 0.8:
+            elif v < thresholds["LIGHT_GREY_VALUE"]:
                 label = 'LIGHT GREY'
             else:
                 label = 'WHITE'
         else:
-            if v > 0.1:
-                if 20 <= h < 90:
+            if v > thresholds["MIN_COLOR_VALUE"]:
+                if hsv_limits["thresholds"][0] <= h < hsv_limits["thresholds"][1]:
                     label = 'YELLOW'
-                elif 90 <= h < 140:
+                elif hsv_limits["thresholds"][1] <= h < hsv_limits["thresholds"][2]:
                     label = 'LIGHT GREEN'
-                elif 140 <= h < 170:
+                elif hsv_limits["thresholds"][2] <= h < hsv_limits["thresholds"][3]:
                     label = 'GREEN'
-                elif 170 <= h < 210:
+                elif hsv_limits["thresholds"][3] <= h < hsv_limits["thresholds"][4]:
                     label = 'LIGHT BLUE'
-                elif 210 <= h < 250:
+                elif hsv_limits["thresholds"][4] <= h < hsv_limits["thresholds"][5]:
                     label = 'BLUE'
-                elif 250 <= h < 280:
+                elif hsv_limits["thresholds"][5] <= h < hsv_limits["thresholds"][6]:
                     label = 'VIOLET'
                 else:  # h<20 or h>=280 is more problematic
-                    if v < 0.5 and s < 0.45:
+                    if v < hsv_limits["high_h_v_thre"][0] and s < hsv_limits["high_h_s_thre"][0]:
                         label = 'BROWN'
                     else:
-                        if v > 0.77:
+                        if v > hsv_limits["high_h_v_thre"][1]:
                             label = 'ORANGE'
                         else:
                             label = 'RED'
@@ -1194,6 +1208,8 @@ class ArduinoAlvik:
             return self.get_fw_version()
         elif version == 'lib' or version == 'LIB':
             return self.get_lib_version()
+        elif version == 'hw' or version == 'HW' or version == 'hardware':
+            return self.get_hw_version()
         else:
             return f'{None, None, None}'
 
@@ -1210,7 +1226,14 @@ class ArduinoAlvik:
         :return:
         """
         return f'{self._fw_version[0]}.{self._fw_version[1]}.{self._fw_version[2]}'
-    
+
+    def get_hw_version(self) -> str:
+        """
+        Returns the hardware version of the Alvik Carrier
+        :return:
+        """
+        return f'{self._hw_version}'
+
     def get_required_fw_version(self) -> str:
         """
         Returns the required firmware version of the Alvik Carrier for this micropython library
