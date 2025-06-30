@@ -1208,6 +1208,8 @@ class ArduinoAlvik:
             return self.get_fw_version()
         elif version == 'lib' or version == 'LIB':
             return self.get_lib_version()
+        elif version == 'hw' or version == 'HW' or version == 'hardware':
+            return self.get_hw_version()
         else:
             return f'{None, None, None}'
 
@@ -1224,7 +1226,14 @@ class ArduinoAlvik:
         :return:
         """
         return f'{self._fw_version[0]}.{self._fw_version[1]}.{self._fw_version[2]}'
-    
+
+    def get_hw_version(self) -> str:
+        """
+        Returns the hardware version of the Alvik Carrier
+        :return:
+        """
+        return f'{self._hw_version}'
+
     def get_required_fw_version(self) -> str:
         """
         Returns the required firmware version of the Alvik Carrier for this micropython library
