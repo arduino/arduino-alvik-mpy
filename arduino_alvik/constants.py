@@ -41,7 +41,7 @@ hw1_color_thresholds = {
     "LIGHT_GREY_VALUE": 0.17,
     "MIN_COLOR_VALUE": 0.1,
 
-    "HSV_LIMITS": {"thresholds": [46, 46, 129, 150, 220, 235, 257],
-                       "high_h_v_thre": [0.27, 0.83],
+    "HSV_LIMITS": {"thresholds": [46, 60, 135, 165, 220, 245, 257],
+                       "high_h_v_thre": [0.5, 0.60],
                        "high_h_s_thre": [0.64]}
 }
