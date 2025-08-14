@@ -32,16 +32,16 @@ hw0_color_thresholds = {
 # COLOR SENSOR
 hw1_color_thresholds = {
     "COLOR_FULL_SCALE": 4097,
-    "WHITE_CAL": [726, 1478, 775],
-    "BLACK_CAL": [385, 809, 411],
+    "WHITE_CAL": [615, 1257, 662]	
+    "BLACK_CAL": [392, 822, 415]	
 
-    "MIN_SATURATION": 0.1,
-    "BLACK_VALUE": 0.05,
+    "MIN_SATURATION": 0.15,
+    "BLACK_VALUE": 0.03,
     "GREY_VALUE": 0.15,
-    "LIGHT_GREY_VALUE": 0.17,
+    "LIGHT_GREY_VALUE": 0.5,
     "MIN_COLOR_VALUE": 0.1,
 
-    "HSV_LIMITS": {"thresholds": [46, 60, 135, 165, 220, 245, 257],
-                       "high_h_v_thre": [0.5, 0.60],
-                       "high_h_s_thre": [0.64]}
+    "HSV_LIMITS": {"thresholds": [40, 60, 140, 165, 225, 245, 265],
+                       "high_h_v_thre": [0.5, 0.80],
+                       "high_h_s_thre": [0.78]}
 }
