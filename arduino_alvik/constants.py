@@ -32,8 +32,8 @@ hw0_color_thresholds = {
 # COLOR SENSOR
 hw1_color_thresholds = {
     "COLOR_FULL_SCALE": 4097,
-    "WHITE_CAL": [615, 1257, 662]	
-    "BLACK_CAL": [392, 822, 415]	
+    "WHITE_CAL": [615, 1257, 662],
+    "BLACK_CAL": [392, 822, 415],
 
     "MIN_SATURATION": 0.15,
     "BLACK_VALUE": 0.03,
